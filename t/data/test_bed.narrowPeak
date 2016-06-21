@@ -1,0 +1,10 @@
+track type=narrowPeak visibility=3 db=e_coli name="e_coli_test vs e_coli_test_1" description="e_coli_test vs e_coli_test_1"
+chr1	15980	16126	e_coli_test_1_peak_1	18	.	1.96097	3.70904	1.82123	73
+chr1	19646	19792	e_coli_test_1_peak_2	18	.	1.96097	3.70904	1.82123	73
+chr1	28825	28971	e_coli_test_1_peak_3	18	.	1.96097	3.70904	1.82123	73
+chr1	39504	39650	e_coli_test_1_peak_4	15	.	1.81900	2.33404	1.53323	73
+chr1	41262	41408	e_coli_test_1_peak_5	15	.	1.81900	2.33404	1.53323	66
+chr1	46222	46368	e_coli_test_1_peak_6	18	.	1.94203	3.35974	1.82123	73
+chr1	48299	48445	e_coli_test_1_peak_7	15	.	1.81900	2.33404	1.53323	73
+chr1	53001	60518	e_coli_test_1_peak_8	51	.	1.99993	9.19993	5.13068	2847
+chr1	65799	65945	e_coli_test_1_peak_9	15	.	1.81900	2.33404	1.53323	73

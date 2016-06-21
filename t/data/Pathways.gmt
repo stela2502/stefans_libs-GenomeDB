@@ -1,0 +1,10 @@
+valine degradation	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Bcat1	Bcat2	Bckdha	Bckdhb	Dbt	Acad8	Echs1	Ehhadh	Hadha	Hibch	Hibadh	Aldh6a1	Mmsdh	Pccb	Pcca	Mcee	Mut
+nonaprenyl diphosphate biosynthesis	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Ggps1	Fntb	Pdss2
+sphingolipid metabolism	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Sptlc3	Sptlc2	Sptlc1	Kdsr	Acer2
+acetyl-CoA biosynthesis (from citrate)	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Acly
+citrulline biosynthesis	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Gls2	Gls	Arg1	Arg2	Oat	Otc	Aldh18a1	Prodh2	Prodh
+superpathway of serine and glycine biosynthesis I	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Psph	Vps29	Phgdh	Psat1	Shmt1	Shmt2
+pyruvate fermentation to lactate	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Ldhb	Ldhc	Ldha	Ldhal6b
+aspartate biosynthesis	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Pcx	Got2
+Rapoport-Luebering glycolytic shunt	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Pgam2	Pgam1	Bpgm
+fatty acid &beta;-oxidation IV (unsaturated, even number)	ftp://ftp.informatics.jax.org/pub/curatorwork/MouseCycDB/pathways_summary.txt	Peci	Dci	Hadha	Decr1	Decr2	Echs1	Ehhadh

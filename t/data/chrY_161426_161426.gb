@@ -1,0 +1,71 @@
+LOCUS       Y:159426..166426       7001 bp  DNA    linear
+DEFINITION  the chromosomal region Y:159426..166426
+ACCESSION   Y:159426..166426
+FEATURES             Location/Qualifiers
+     source          84822..>166426
+                     /mol_type="genomic DNA"
+                     /db_xref="taxon:9606"
+                     /chromosome="Y"
+                     /organism="Homo sapiens"
+     gene            132991..160020
+                     /db_xref="GeneID:55344"
+                     /db_xref="HGNC:23148"
+                     /gene="PLCXD1"
+                     /note="Derived by automated computational analysis using
+                     gene prediction method: BestRefseq. Supporting evidence
+                     includes similarity to: 1 mRNA"
+     mRNA            join(132991..133061,138149..138351,140834..140981,
+                     145400..145536,147315..147443,148166..148321,149702..149885,
+                     155764..156059,159260..160020)
+                     /db_xref="GI:94158612"
+                     /db_xref="GeneID:55344"
+                     /db_xref="HGNC:23148"
+                     /gene="PLCXD1"
+                     /product="phosphatidylinositol-specific phospholipase C, X
+                     domain containing 1"
+                     /transcript_id="NM_018390.2"
+                     /note="Derived by automated computational analysis using
+                     gene prediction method: BestRefseq. Supporting evidence
+                     includes similarity to: 1 mRNA"
+     gene            complement(161426..>166426)
+                     /db_xref="GeneID:8225"
+                     /db_xref="HGNC:30189"
+                     /db_xref="MIM:300124"
+                     /gene="GTPBP6"
+                     /note="Derived by automated computational analysis using
+                     gene prediction method: BestRefseq. Supporting evidence
+                     includes similarity to: 1 mRNA"
+     mRNA            complement(join(161426..161864,164027..164179,
+                     164399..164547))
+                     /db_xref="GI:6912587"
+                     /db_xref="GeneID:8225"
+                     /db_xref="HGNC:30189"
+                     /db_xref="MIM:300124"
+                     /exception="unclassified transcription discrepancy"
+                     /gene="GTPBP6"
+                     /product="GTP binding protein 6 (putative)"
+                     /transcript_id="NM_012227.1"
+                     /note="Derived by automated computational analysis using
+                     gene prediction method: BestRefseq. Supporting evidence
+                     includes similarity to: 1 mRNA"
+     STS             161455..161616
+                     /db_xref="UniSTS:99581"
+     CDS             complement(join(161741..161864,164027..164179,
+                     164399..164547))
+                     /db_xref="GI:6912588"
+                     /db_xref="GeneID:8225"
+                     /db_xref="HGNC:30189"
+                     /db_xref="MIM:300124"
+                     /exception="unclassified translation discrepancy"
+                     /protein_id="NP_036359.1"
+                     /gene="GTPBP6"
+                     /GO_component="intracellular [GO ID 0005622] [Evidence
+                     IEA]"
+                     /GO_function="GTP binding [GO ID 0005525] [Evidence TAS]
+                     [PMID 9466997]"
+                     /product="pseudoautosomal GTP-binding protein-like
+                     protein"
+                     /note="pseudoautosomal GTP-binding protein-like;
+                     pseudoautosomal GTP binding protein-like"
+ORIGIN
+//

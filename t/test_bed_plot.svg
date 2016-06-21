@@ -1,0 +1,39 @@
+
+<svg height="1600" width="1200" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="1-746-530" x="746" y="548">chr2 genomic orientation</text>
+	<line id="2-150-450" style="fill: rgb(0,0,0); fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1; stroke-linecap: square" x1="150" x2="1150" y1="450" y2="450" />
+	<line id="3-350-470" style="fill: rgb(0,0,0); fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1; stroke-linecap: square" x1="350" x2="350" y1="470" y2="450" />
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="4-350-470" x="350" y="488">3.00 Kb</text>
+	<line id="5-550-470" style="fill: rgb(0,0,0); fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1; stroke-linecap: square" x1="550" x2="550" y1="470" y2="450" />
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="6-550-470" x="550" y="488">5.00 Kb</text>
+	<line id="7-750-470" style="fill: rgb(0,0,0); fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1; stroke-linecap: square" x1="750" x2="750" y1="470" y2="450" />
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="8-750-470" x="750" y="488">7.00 Kb</text>
+	<line id="9-950-470" style="fill: rgb(0,0,0); fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1; stroke-linecap: square" x1="950" x2="950" y1="470" y2="450" />
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="10-950-470" x="950" y="488">9.00 Kb</text>
+	<line id="11-1150-470" style="fill: rgb(0,0,0); fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1; stroke-linecap: square" x1="1150" x2="1150" y1="470" y2="450" />
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="12-150-470" x="150" y="488">1000 bp</text>
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="13-1110-470" x="1110" y="488">11 Kb</text>
+	<rect height="300" id="14-150-450" style="fill: none; fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1" width="1000" x="150" y="150" />
+	<rect height="88" id="15-200-191" style="fill: rgb(0,155,0); fill-opacity: 1.0; stroke: rgb(0,155,0); stroke-opacity: 1.0; stroke-width: 1" width="20" x="200" y="191" />
+	<rect height="88" id="16-310-191" style="fill: rgb(0,155,0); fill-opacity: 1.0; stroke: rgb(0,155,0); stroke-opacity: 1.0; stroke-width: 1" width="10" x="310" y="191" />
+	<rect height="88" id="17-550-191" style="fill: rgb(0,155,0); fill-opacity: 1.0; stroke: rgb(0,155,0); stroke-opacity: 1.0; stroke-width: 1" width="40" x="550" y="191" />
+	<rect height="88" id="18-750-191" style="fill: rgb(0,155,0); fill-opacity: 1.0; stroke: rgb(0,155,0); stroke-opacity: 1.0; stroke-width: 1" width="50" x="750" y="191" />
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="19-150-232" x="150" y="250"></text>
+	<rect height="88" id="20-180-320" style="fill: rgb(255,0,0); fill-opacity: 1.0; stroke: rgb(255,0,0); stroke-opacity: 1.0; stroke-width: 1" width="30" x="180" y="320" />
+	<rect height="88" id="21-330-320" style="fill: rgb(255,0,0); fill-opacity: 1.0; stroke: rgb(255,0,0); stroke-opacity: 1.0; stroke-width: 1" width="20" x="330" y="320" />
+	<rect height="88" id="22-550-320" style="fill: rgb(255,0,0); fill-opacity: 1.0; stroke: rgb(255,0,0); stroke-opacity: 1.0; stroke-width: 1" width="40" x="550" y="320" />
+	<rect height="88" id="23-620-320" style="fill: rgb(255,0,0); fill-opacity: 1.0; stroke: rgb(255,0,0); stroke-opacity: 1.0; stroke-width: 1" width="80" x="620" y="320" />
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="24-150-361" x="150" y="379"></text>
+	<rect height="43" id="25-150-278" style="fill: none; fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1" width="1000" x="150" y="278" />
+	<rect height="45" id="26-550-277" style="fill: rgb(0,0,0); fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1" width="220" x="550" y="277" />
+	<rect height="45" id="27-720-277" style="fill: rgb(0,0,0); fill-opacity: 1.0; stroke: rgb(0,0,0); stroke-opacity: 1.0; stroke-width: 1" width="230" x="720" y="277" />
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="28-150-296" x="150" y="314"></text>
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="29-100-225" x="100" y="243">Bed A</text>
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="30-100-354" x="100" y="372">bed C</text>
+	<text fill="rgb(0,0,0)" font="/Users/stefanlang/PhD/Libs_new_structure/BioInfo1/stefans_libs/fonts/LinLibertineFont/LinLibertineC-2.2.3.ttf" font-size="20" font-weight="normal" id="31-100-290" x="100" y="308">genes</text>
+	<!-- 
+	Generated using the Perl SVG Module V2.53
+	by Ronan Oger
+	Info: http://www.roitsystems.com/
+ -->
+</svg>

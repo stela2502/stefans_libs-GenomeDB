@@ -1,0 +1,30 @@
+#Feng X, Grossman R, Stein L: PeakRanger:A cloud-enabled peak caller for ChIP-seq data.BMC Bioinformatics 2011, 12(1):139.
+#2014-6-19 12:42:24
+#program version:           1.16
+#Data files:
+# File format:             bam
+# Sample file:             /home/slang/workspace/BMC_NGS/t/data/output/NGS_match_reads/bowtie/oonu_q_S_n1_p3/e_coli_1000_fq.sorted.bam
+# Control file:            /home/slang/workspace/BMC_NGS/t/data/output/NGS_match_reads/bowtie/oonu_q_S_n1_p3/e_coli_1000_1_fq.sorted.bam
+#Qualities:
+# P value cut off:         0.99
+# FDR cut off:             0.99
+# Read extension length:   100
+# Smoothing bandwidth:     99
+# Delta:                   1
+# Pad region profile:      Disabled
+#Running modes:
+# Number of threads:       3
+#Output:
+# Regions:                 /home/slang/workspace/BMC_NGS/t/data/output/NGS_match_reads/bowtie/oonu_q_S_n1_p3/peakranger/e_coli_test_1_region.bed
+# Summits:                 /home/slang/workspace/BMC_NGS/t/data/output/NGS_match_reads/bowtie/oonu_q_S_n1_p3/peakranger/e_coli_test_1_summit.bed
+# Details of regions:      /home/slang/workspace/BMC_NGS/t/data/output/NGS_match_reads/bowtie/oonu_q_S_n1_p3/peakranger/e_coli_test_1_details
+# HTML reports:            Disabled(--report not specified)
+
+#summit_chr	summit_start	summit_end	summit_ID	summit_FDR	summit_strand
+gi|110640213|ref|NC_008253.1|	537357	537358	ranger_region_537357_537437_pval_0.25_fdrFailed_0	1.75	+
+gi|110640213|ref|NC_008253.1|	1621010	1621011	ranger_region_1621010_1621080_pval_0.25_fdrPassed_0	0.875	+
+gi|110640213|ref|NC_008253.1|	4824730	4824731	ranger_region_4824730_4824827_pval_0.25_fdrPassed_1	0.583333	+
+gi|110640213|ref|NC_008253.1|	777758	777759	ranger_region_777758_777814_pval_0.5_fdrPassed_2	0.875	+
+gi|110640213|ref|NC_008253.1|	1761120	1761121	ranger_region_1761120_1761212_pval_0.5_fdrPassed_3	0.7	+
+gi|110640213|ref|NC_008253.1|	3342849	3342850	ranger_region_3342849_3342923_pval_0.5_fdrPassed_4	0.583333	+
+gi|110640213|ref|NC_008253.1|	4864405	4864406	ranger_region_4864405_4864498_pval_0.5_fdrPassed_5	0.5	+
