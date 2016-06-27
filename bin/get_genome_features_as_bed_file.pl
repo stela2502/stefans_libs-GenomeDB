@@ -123,7 +123,7 @@ my $interface =
 
 my $bed_file = $interface->get_as_bed_file(
 	{ 
-		'tag' => 'gene', 
+		'tag' => 'gene',
 #		's_start' => 5000, 
 #		's_end' => 2000 
 	}

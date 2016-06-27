@@ -255,13 +255,14 @@ returns a list of chr_name, chr_start, chr_end
 =cut
 
 sub gbFile_2_chromosome {
-	my ( $self, $gbFile_id, $start, $end ) = @_;
+	my ( $self, $gbFile_id, $start, $end) = @_;
 	$start = 1 if ( $start == 0 );
 	# my $data_table = $self->{'data'}->select_where ( 'gbFile_id',  sub { return 1 if ( $_[0] eq $gbFile_id); return 0; } );
 	my $data =  $self->{'data'}->get_line_asHash ($self->{'data'}->get_rowNumbers_4_columnName_and_Entry( 'gbFile_id', $gbFile_id ) );
 	unless ( defined $end ) {
 		$end = $data->{'end'}- $data->{'start'};
 	}
+	#print "chr$data->{'chromosome'}, $data->{'start'} +$start -1, $data->{'start'} + $end -1\t";
 	return ( 'chr'.$data->{'chromosome'}, $data->{'start'} +$start -1, $data->{'start'} + $end -1 );
 }
 

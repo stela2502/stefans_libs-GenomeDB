@@ -86,7 +86,7 @@ sub new {
 		@{ $hash->{'variables'} },
 		{
 			'name'        => 'version',
-			'type'        => 'VARCHAR (20)',
+			'type'        => 'VARCHAR (100)',
 			'NULL'        => '0',
 			'description' => 'the version of the genome information',
 			'needed'      => '1'

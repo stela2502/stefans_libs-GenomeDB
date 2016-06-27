@@ -1,17 +1,18 @@
 package genbank_flatfile_db;
+
 #  Copyright (C) 2008 Stefan Lang
 
-#  This program is free software; you can redistribute it 
-#  and/or modify it under the terms of the GNU General Public License 
-#  as published by the Free Software Foundation; 
+#  This program is free software; you can redistribute it
+#  and/or modify it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation;
 #  either version 3 of the License, or (at your option) any later version.
 
-#  This program is distributed in the hope that it will be useful, 
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of 
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #  See the GNU General Public License for more details.
 
-#  You should have received a copy of the GNU General Public License 
+#  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 use strict;
@@ -37,7 +38,6 @@ a wrapper around a genbank flatfile to be used to import the database
 
 =cut
 
-
 =head1 METHODS
 
 =head2 new
@@ -46,115 +46,165 @@ new returns a new object reference of the class genbank_flatfile_db.
 
 =cut
 
-sub new{
+sub new {
 
-	my ( $class, $debug ) = @_;
+	my ( $class, $hash ) = @_;
 
-	my ( $self );
-
+	my ($self);
+	unless ( ref($hash) eq "HASH") {
+		$hash = { 'debug' => $hash };
+	}
 	$self = {
-		debug => $debug,
-		tempPath => "/home/stefan_l/temp", 
-		files => my $hash
-  	};
+		debug    => $hash->{'debug'},
+		tempPath => $hash->{'tempPath'},
+		files    => {},
+	};
+	$self->{'tempPath'} ||= "/home/stefan_l/temp";
+	unless ( -d $self->{'tempPath'} ){
+		mkdir ( $self->{'tempPath'} );
+	}
+	bless $self, $class if ( $class eq "genbank_flatfile_db" );
 
-  	bless $self, $class  if ( $class eq "genbank_flatfile_db" );
-
-  	return $self;
+	return $self;
 
 }
 
 sub expected_dbh_type {
+
 	#return 'dbh';
 	return "not a database interface";
 	return "database";
 }
 
-sub loadFlatFile{
+sub loadFlatFile {
 	my ( $self, $flatfile, $even_spacing ) = @_;
-	$even_spacing |= 100; ## the new H_Sapiens database has a 100bp spacing of the gb files, but no seq_contig file.
-	print "$self tries to read the flatfile '$flatfile'\n" if ( $self->{debug});
-	## hs_ref_GRCh38_chr1.gbk
-	if ( $flatfile =~ m/\.gz$/ ){
-		## we have a gzipped file!
-		open (IN,"<:gzip", "$flatfile") or die "problem with the >PerlIO::gzip layer ('$flatfile')?\n$!\n";
+	return () if ($flatfile =~ m/.filelist$/ );
+	$even_spacing |= 100
+	  ; ## the new H_Sapiens database has a 100bp spacing of the gb files, but no seq_contig file.
+	print "$self tries to read the flatfile '$flatfile'\n"
+	  if ( $self->{debug} );
+	my @order;
+
+	if ( -f $flatfile . ".filelist" ) {
+		print
+"I suppose we already have processed this file '$flatfile'!\nReading from log\n";
+		open( LOG, "<$flatfile.filelist" )
+		  or die "I could not open the log file $flatfile.filelist\n$!\n";
+		my @tmp;
+		foreach (<LOG>) {
+			chomp($_);
+			@tmp = split( "\t", $_ );
+			$self->{files}->{ $tmp[0] } = $tmp[1];
+			push( @order, $tmp[0] );
+		}
+		close(LOG);
 	}
 	else {
-		open ( IN, "<$flatfile") or die "can not read the genbank flatfile $flatfile\n";
-	}
-	my (@gbFile, $version, $mode, $line);
-	
-	$mode = 0; # 0 == search for gbEntry start; 1 == colectionO_of_GbEntry
-	$line = 0;
-	my @order;
-	my $chromosome = $1 if ($flatfile=~m/[Cc]hr([\w\d]+)\.gbk/ );
-	Carp::confess ( "Not a suitable file: '$flatfile'\nI was unable to identify the chromosome!\n" ) unless ( $chromosome );
-	while ( <IN> ){
-		$line ++;
-		if ( $mode == 0 ){
-			die "strange line in gbFlatfile $flatfile in line $line\n$_" unless ( $_ =~ m/^LOCUS/ );
-			$mode = 1;
+		open( LOG, ">$flatfile.filelist" )
+		  or die "I could not create the log file '$flatfile.filelist'\n$!\n";
+
+		if ( $flatfile =~ m/\.gz$/ ) {
+			## we have a gzipped file!
+			open( IN, "<:gzip", $flatfile )
+			  or die
+			  "problem with the >PerlIO::gzip layer ('$flatfile')?\n$!\n";
 		}
-		if ( $_ =~m/^LOCUS\s+([\w_\d+\.]*)\s+(\d+) bp/){
-			push ( @order, [$chromosome,  $1 ,$2 ] );
+		else {
+			open( IN, "<$flatfile" )
+			  or die "can not read the genbank flatfile $flatfile\n";
 		}
-		push (@gbFile , $_ );
-		if ( $_ =~ m/^VERSION +([\w\d\.]+) +.+/ ){
-			$version = $1;
-			@{@order[@order-1]}[1] = $version;
-			if ( -f ">$self->{tempPath}/$version.gb"){
-				warn "ups - the file was processed earlier? aborting the export of gbFiles.\nThis saves a lot of time!\n";
-				opendir ( DIR, $self->{tempPath});
-				my @dir = readdir ( DIR);
-				foreach my $filename (@dir){
-					if ( $filename =~ m/([\w\d]+)\.gb/ ){
-						$version = $1;
-						$self->{files}->{$version} = "$self->{tempPath}/$version.gb";
+		my ( @gbFile, $version, $mode, $line );
+
+		$mode = 0;   # 0 == search for gbEntry start; 1 == colectionO_of_GbEntry
+		$line = 0;
+		my $chromosome = $1 if ( $flatfile =~ m/[Cc]hr([\w\d]+)\.gbk/ );
+		Carp::confess(
+"Not a suitable file: '$flatfile'\nI was unable to identify the chromosome!\n"
+		) unless ($chromosome);
+		while (<IN>) {
+			$line++;
+			if ( $mode == 0 ) {
+				die "strange line in gbFlatfile $flatfile in line $line\n$_"
+				  unless ( $_ =~ m/^LOCUS/ );
+				$mode = 1;
+			}
+			if ( $_ =~ m/^LOCUS\s+([\w_\d+\.]*)\s+(\d+) bp/ ) {
+				push( @order, [ $chromosome, $1, $2 ] );
+			}
+			push( @gbFile, $_ );
+			if ( $_ =~ m/^VERSION +([\w\d\.]+) +.+/ ) {
+				$version = $1;
+				@{ @order[ @order - 1 ] }[1] = $version;
+				if ( -f ">$self->{tempPath}/$version.gb" ) {
+					warn
+"ups - the file was processed earlier? aborting the export of gbFiles.\nThis saves a lot of time!\n";
+					opendir( DIR, $self->{tempPath} );
+					my @dir = readdir(DIR);
+					foreach my $filename (@dir) {
+						if ( $filename =~ m/([\w\d]+)\.gb/ ) {
+							$version = $1;
+							$self->{files}->{$version} =
+							  "$self->{tempPath}/$version.gb";
+						}
 					}
+					closedir(DIR);
+					last;
 				}
-				closedir( DIR );
-				last;
+			}
+			if ( $_ =~ m!^ *// *$! ) {
+				## end of one gbEntry!
+				open( GBfile, ">$self->{tempPath}/$version.gb" )
+				  or die
+"could not open temporary file $self->{tempPath}/$version.gb\n$!\n";
+				print GBfile join( "", @gbFile );
+				close(GBfile);
+				print LOG $version . "\t$self->{tempPath}/$version.gb\n";
+				$self->{files}->{$version} = "$self->{tempPath}/$version.gb";
+				@gbFile                    = ();
+				$version                   = "";
 			}
 		}
-		if ( $_ =~ m!^ *// *$! ){
-			## end of one gbEntry!
-			open (GBfile, ">$self->{tempPath}/$version.gb") or die "could not open temporary file $self->{tempPath}/$version.gb\n$!\n";
-			print GBfile join( "",@gbFile);
-			close (GBfile);
+		close(IN);
+		if ( $version =~ m/\w/ ) {
+			open( GBfile, ">$self->{tempPath}/$version.gb" )
+			  or die
+"could not open temporary file $self->{tempPath}/$version.gb\n$!\n";
+			print GBfile join( "", @gbFile );
+			close(GBfile);
+			print LOG $version . "\t$self->{tempPath}/$version.gb\n";
 			$self->{files}->{$version} = "$self->{tempPath}/$version.gb";
-			@gbFile = ();
-			$version = "";
 		}
-	}
-	close (IN);
-	if ( $version =~m/\w/ ){
-		open (GBfile, ">$self->{tempPath}/$version.gb") or die "could not open temporary file $self->{tempPath}/$version.gb\n$!\n";
-		print GBfile join( "",@gbFile);
-		close (GBfile);
-		$self->{files}->{$version} = "$self->{tempPath}/$version.gb";
+		close(LOG);
 	}
 	return @order;
 }
 
-sub getAll_files_as_String{
-	my ( $self ) = @_;
+sub getAll_files_as_String {
+	my ($self) = @_;
 	my $string = "version\tfile\n";
-	foreach my $version ( sort keys %{$self->{files}} ){
+	foreach my $version ( sort keys %{ $self->{files} } ) {
 		$string .= "$version\t$self->{files}->{$version}\n";
 	}
 	return $string;
 }
 
-sub get_gbFile_obj_for_version{
+sub get_gbFile_obj_for_version {
 	my ( $self, $version ) = @_;
-	#print ref($self).":get_gbFile_obj_for_version -> we have the filename '$self->{files}->{$version}' for the version $version\n";
-	return gbFile->new($self->{files}->{$version}) if ( defined $self->{files}->{$version});
-	if ( -f "$self->{tempPath}/$version.gb"){
-		warn ref($self).":get_gbFile_obj_for_version OOPS - we might have an bug in loadFlatFile as we had to create the filename from scratch, but we have found the file!\n";
+
+#print ref($self).":get_gbFile_obj_for_version -> we have the filename '$self->{files}->{$version}' for the version $version\n";
+	return gbFile->new( $self->{files}->{$version} )
+	  if ( defined $self->{files}->{$version} );
+	if ( -f "$self->{tempPath}/$version.gb" ) {
+		warn ref($self)
+		  . ":get_gbFile_obj_for_version OOPS - we might have an bug in loadFlatFile as we had to create the filename from scratch, but we have found the file!\n";
 		$self->{files}->{$version} = "$self->{tempPath}/$version.gb";
-		return gbFile->new($self->{files}->{$version}) if ( -f $self->{files}->{$version});
+		return gbFile->new( $self->{files}->{$version} )
+		  if ( -f $self->{files}->{$version} );
 	}
-	Carp::confess( ref($self).":get_gbFile_obj_for_version -> we do not know the file \$self->{files}->{$version}\n");
+	Carp::confess(
+		ref($self)
+		  . ":get_gbFile_obj_for_version -> we do not know the file \$self->{files}->{$version} ($self->{tempPath})\n"
+	);
 	return undef;
 }
 

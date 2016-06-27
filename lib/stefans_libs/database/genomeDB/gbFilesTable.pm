@@ -237,24 +237,6 @@ sub get_SNP_Table_interface {
 	return $SNP_table;
 }
 
-sub DO_ADDITIONAL_DATASET_CHECKS {
-	my ( $self, $dataset ) = @_;
-	unless ( ref( $dataset->{'gbFile'} ) eq "gbFile" ) {
-		$self->{'error'} .= ref($self)
-		  . ":DO_ADDITIONAL_DATASET_CHECKS -> the gbFile is no gbFile!";
-	}
-	else {
-		$dataset->{'acc'} = $dataset->{'gbFile'}->Version();
-		$dataset->{'seq'} = {
-			'filename' => $dataset->{'sequence_file'},
-			'filetype' => 'data_file',
-			'mode'     => 'text'
-		};    #$dataset->{'gbFile'}->Sequence();
-		$dataset->{'header'} = $dataset->{'gbFile'}->{'header'}->getAsGB();
-	}
-	return $dataset;
-}
-
 sub Add_2_result_ROIs {
 	my ( $self, $database_name, $dataArray ) = @_;
 	my ($dataset);
@@ -311,7 +293,7 @@ sub Connect_2_REPEAT_ROI_table {
 	return $self->{'data_handler'}->{'REPEAT_table'};
 }
 
-sub post_INSERT_INTO_DOWNSTREAM_TABLES {
+sub Add_all_gbFeatures {
 	my ( $self, $id, $dataset ) = @_;
 
 	if (
@@ -425,15 +407,16 @@ sub get_featureList_for_gbID_start_end {
 
 sub _exists {
 	my ( $self, $id ) = @_;
+	
 	my $sth = $self->_get_SearchHandle( { 'search_name' => 'exists_id' } );
-	my $value = $sth->execute($id);
-	if ( $value == 1 ) {
-		return 1;
+	my $value = 0;
+	if ( $id =~m/^\d+$/ ){
+		return 1 if ( scalar( @{$self->_select_all_for_DATAFIELD($id, 'id')})  == 1 );
 	}
 	else {
-		return 0;
+		return 1 if ( scalar( @{$self->_select_all_for_DATAFIELD($id, 'acc')})  == 1 );
 	}
-	return undef;
+	return 0;
 }
 
 sub getGbFiles_for_Gene_Name {
@@ -516,6 +499,7 @@ sub Mask_sequence {
 	else {    ## the user want the normal seq file
 		my $seq_file = $self->{'data_handler'}->{'external_files'}
 		  ->get_fileHandle( { 'id' => $seq_id } );
+		
 		my $seq = <$seq_file>;
 		close($seq_file);
 		return $seq;

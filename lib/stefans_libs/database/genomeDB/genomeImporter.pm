@@ -61,7 +61,7 @@ sub new {
 
 	my ( $class, $databaseName, $debug ) = @_;
 
-	$debug = 1;
+#	$debug = 1;
 	my ($self);
 
 	$self = {
@@ -95,6 +95,14 @@ sub expected_dbh_type {
 	#return "database";
 }
 
+sub genbank_flatfile_db {
+	my ( $self ) = @_;
+	unless ( defined $self->{genbank_flatfile_db} ) {
+		$self->{genbank_flatfile_db} = genbank_flatfile_db->new( { 'debug' => $self->{'debug'}, 'tempPath' => "$self->{databaseDir}/originals" } );
+	}
+	return $self->{genbank_flatfile_db};
+}
+
 sub import_refSeq_genome_for_organism {
 	my ( $self, $organism, $releaseDate, $version, $referenceTag,
 		$even_spacing ) = @_;
@@ -104,12 +112,10 @@ sub import_refSeq_genome_for_organism {
 	);
 	$files =
 	  $self->download_refseq_genome_for_organism( $organism, $version, $even_spacing );
-
-	my $genbank_flatfile_db = genbank_flatfile_db->new();
-	$genbank_flatfile_db->{tempPath} = "$self->{databaseDir}/originals";
-	mkdir("$self->{databaseDir}/tmp") unless ( -d "$self->{databaseDir}/tmp" );
+	
 	$self->{seq_contig} -> parse_order($self->Extract_gbFiles($files, $even_spacing), $even_spacing, $referenceTag ) 
 	  unless ( -f "$self->{databaseDir}/originals/extracted.txt" ) ;
+	  
 	$self->{seq_contig}-> write_file ( "$self->{databaseDir}/originals/chr_ranges.txt" ) if ( @{$self->{seq_contig}->{'data'}} > 0 );
 	if ( -f  "$self->{databaseDir}/originals/chr_ranges.txt" ){
 		$self->{seq_contig}
@@ -121,6 +127,7 @@ sub import_refSeq_genome_for_organism {
 	}
 	
 	unless ( defined $releaseDate ) {
+		warn "You have not supplied a release data - I check whether I can identify it:\n";
 		$self->{NCBI_genome_Readme}->readFile( $files->{readme} );
 	}
 	else {
@@ -174,16 +181,6 @@ sub import_refSeq_genome_for_organism {
 	$refTag    = $self->{'NCBI_genome_Readme'}->ReferenceTag();
 
 	while ( my $chrInfo = $self->{seq_contig}->getNext() ) {
-		if ( $self->{debug} ) {
-			print ref($self)
-			  . ":import_refSeq_genome_for_organism we read the files from "
-			  . "$self->{'databaseDir'} or better $genbank_flatfile_db->{tempPath}\n";
-			print ref($self)
-			  . " \$chrInfo->{group_label} = $chrInfo->{group_label}\n";
-			print ref($self)
-			  . " \$self->{NCBI_genome_Readme}->ReferenceTag() = ",
-			  $self->{NCBI_genome_Readme}->ReferenceTag(), "\n";
-		}
 		next
 		  if ( $chrInfo->{feature_name} eq "start"
 			|| $chrInfo->{feature_name} eq "end" );
@@ -201,18 +198,13 @@ sub import_refSeq_genome_for_organism {
 			$chrInfo->{group_label} = $refTag;
 			## first we might check, if the file is already in the database - or?
 			$processed++;
-			$exists = 0;
-			eval { $exists = $sth->execute( $chrInfo->{feature_name} ) };
-			if ( $exists == 1 ) {
-				print
-"this gbFile has already been imported ($chrInfo->{feature_name})\n";
+			if ( $chromosm_interface ->_exists(  $chrInfo->{feature_name} ) ) {
+				print "this gbFile has already been imported ($chrInfo->{feature_name})\n";
 				next;
 			}
-			eval {
-				$gbFile =
-				  $genbank_flatfile_db->get_gbFile_obj_for_version(
-					$chrInfo->{feature_name} );
-			};
+
+			$gbFile = $self->genbank_flatfile_db()->get_gbFile_obj_for_version($chrInfo->{feature_name} );
+			
 			unless ( ref($gbFile) eq "gbFile" ) {
 				Carp::confess(
 					root::print_hashEntries(
@@ -222,34 +214,10 @@ sub import_refSeq_genome_for_organism {
 					)
 				);
 			}
-
-			print ref($self)
-			  . ":we add the gbFile "
-			  . $gbFile->Print()
-			  . " to the Database\n"
-			  if ( $self->{debug} );
-
-			unless ( defined $gbFile->Version() ) {
-				warn ref($self)
-				  . " we got no gbFile entry for feature name '$chrInfo->{feature_name}'\n"
-				  unless ( $chrInfo->{feature_name} eq "start" );
-				next;
-			}
-			## now the sequence information is stored in a external file - hence I need to CREATE that file here!
-			$seq_file =
-			  "$self->{databaseDir}/tmp/" . $gbFile->Version() . ".data";
-			open( OUT, ">$seq_file" )
-			  or die "I can not create the temp data file '$seq_file'\n";
-			print OUT $gbFile->Sequence();
-			close(OUT);
-			$rv = $chromosm_interface->AddDataset(
-				{
-					'gbFile'        => $gbFile,
-					'chromosome'    => $chrInfo,
-					'sequence_file' => $seq_file
-				}
-			);
-			unlink($seq_file);
+			print ref($self) . ":we add the gbFile ". $gbFile->getAsGB() . " to the Database\n" if ( $self->{debug} );
+			
+			$self->Add_One_GB_file ( {'gbFile' => $gbFile,'chromosome' => $chrInfo,'sequence_file' => $seq_file},$chromosm_interface );
+		
 			$gbFile->DESTROY();
 		}
 		elsif ( $self->{debug} ) {
@@ -269,6 +237,31 @@ sub import_refSeq_genome_for_organism {
 	return 1;
 }
 
+
+
+sub Add_One_GB_file {
+	my ( $self, $dataset, $chromosm_interface ) = @_;
+	#print "\$exp = ".root->print_perl_var_def( $dataset ).";\n";
+	#print  join(", ", keys %{$chromosm_interface->{'data_handler'}})."\n";
+	my $chr_id = $chromosm_interface ->{'data_handler'} -> {chromosomesTable} -> AddDataset(  $dataset->{chromosome}  );
+	## now I can add the gbFile sequence
+	my $seq_file =  "$self->{databaseDir}/tmp/" .$dataset->{gbFile}->Version() . ".data";
+	open( OUT, ">$seq_file" ) or die "I can not create the temp data file '$seq_file'\n";
+	print OUT $dataset->{gbFile}->Sequence();
+	close(OUT);	
+	my $file_id = $chromosm_interface ->{'data_handler'} -> {external_files} -> AddDataset ( {'mode' => 'text', 'filetype' => 'data_file', 'filename' => $seq_file } );
+	unlink ( $seq_file ); ## the data has already been copied to the database!
+	my $gbFile_id = $chromosm_interface->AddDataset( { 
+		'acc' => $dataset->{'gbFile'}->Version(),
+		'header' => $dataset->{'gbFile'}->{header}->getAsGB(),
+		'seq_id' => $file_id,
+		'chromosome_id' => $chr_id,
+		'masked_seq_id' => 0,
+	} );
+	$chromosm_interface->Add_all_gbFeatures($gbFile_id, {'gbFile' => $dataset->{'gbFile'} } );
+	return $gbFile_id;
+}
+
 sub download_refseq_genome_for_organism {
 	my ( $self, $organism, $version, $even_spacing ) = @_;
 	my ( @directory, @CHR_dir, $return, $already_read, @wget );
@@ -277,8 +270,8 @@ sub download_refseq_genome_for_organism {
 	print "Database Dir = $self->{databaseDir} \n" if ( $self->{debug} );
 	if ( -d "$self->{databaseDir}" ) {
 		warn "the dataset has already been downloaded!\nSTOP?\n";
-		opendir( DIR, "$self->{databaseDir}/" );
-		my @entries = readdir(DIR);
+		opendir( DIR,  "$self->{databaseDir}/" );
+		my @entries = grep !/.filelist$/,readdir(DIR);
 		closedir(DIR);
 
 		foreach my $file (@entries) {
@@ -356,22 +349,6 @@ sub download_refseq_genome_for_organism {
 						my $cmd = "wget  ftp.ncbi.nlm.nih.gov/genomes/$organism/ARCHIVE/$version/$entry/$file -O $self->{databaseDir}/$file\n";
 						print  $cmd ;
 						push (@wget, $cmd );
-#						push(
-#							@{ $return->{'gbLibs'} },
-#							"$self->{databaseDir}/$file"
-#						);
-#						unless ( -f "$self->{databaseDir}/$file" ) {
-#							push( @wget,
-#"wget  ftp.ncbi.nlm.nih.gov/genomes/$organism/ARCHIVE/$version/$entry/$file -p $self->{databaseDir}"
-#							);
-#							system(
-#"wget  ftp.ncbi.nlm.nih.gov/genomes/$organism/ARCHIVE/$version/$entry/$file -p $self->{databaseDir} /dev/null"
-#							);
-#							if ( -f "$self->{databaseDir}/$file" )
-#							{    ## the file might have been read
-#								pop(@wget);
-#							}
-#						}
 					}
 				}
 			}
@@ -406,15 +383,11 @@ sub download_refseq_genome_for_organism {
 sub Extract_gbFiles {
 	my ( $self, $files, $even_spacing, $reference_tag ) = @_;
 	## now we have to import the info into the database!!
-	my $genbank_flatfile_db = genbank_flatfile_db->new();
-	$genbank_flatfile_db->{tempPath} = "$self->{databaseDir}/originals";
-	mkdir("$self->{databaseDir}/originals")
-	  unless ( -d "$self->{databaseDir}/originals" );
 	my $dbLibFiles = 0;
 	my @order;
 	foreach my $gbLibFile ( @{ $files->{gbLibs} } ) {
 		$dbLibFiles++;
-		push(@order, $genbank_flatfile_db->loadFlatFile($gbLibFile, $even_spacing,$reference_tag ) );
+		push(@order, $self->genbank_flatfile_db()->loadFlatFile($gbLibFile, $even_spacing,$reference_tag ) );
 	}
 	if ( defined $even_spacing ) {
 		

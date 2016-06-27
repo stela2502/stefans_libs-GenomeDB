@@ -99,8 +99,8 @@ sub Version {
 	if ( defined $version ) {
 		$self->{data}->{version} = $version;
 	}
-	$self->{'data'}->{'version'} = 0 unless ( defined $self->{data}->{version});
-	return $self->{data}->{build} . "." . $self->{data}->{version};
+	return(  $self->{data}->{build} . "." . $self->{data}->{version} ) if ( defined $self->{data}->{version});
+	return $self->{data}->{build};
 }
 
 sub ReferenceTag{

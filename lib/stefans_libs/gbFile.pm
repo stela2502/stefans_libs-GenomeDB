@@ -19,6 +19,9 @@ use stefans_libs::gbFile::gbFeature;
 use stefans_libs::fastaFile;
 use stefans_libs::gbFile::gbHeader;
 use stefans_libs::root;
+use stefans_libs::gbFile::file_parser;
+
+use base ( 'stefans_libs::gbFile::file_parser' );
 
 use strict; 
 use warnings;
@@ -116,7 +119,7 @@ sub new {
 
 	if ( defined $gbFile ) {
 		Carp::confess "no usable file ($gbFile)" unless ( -f $gbFile );
-		$self->AddGbfile($gbFile);
+		$self->openFile($gbFile);
 		unless ( defined $self->{header} ) {
 			warn
 "we have read the file '$gbFile', but could not parse an gbFile object from that, as the header information is empty!\n";
@@ -526,6 +529,7 @@ sub getSequence_ForFeatureName {
 
 	foreach my $feature (@$features) {
 		if ( $feature->Name() =~ m/$featureName/ ) {
+			return $self->Get_SubSeq( $feature, $delta );
 			print "Found V_segment Nr $featureName = ", $feature->Name(), "\n";
 			print "substr(\$self->{seq},", $feature->Start(), " - $delta, ",
 			  $feature->End(), " - ", $feature->Start(), " + $delta );\n";
@@ -564,33 +568,9 @@ sub Features {
 
 	my $features = $self->{features};
 
-	#print "gbFeature Feature = $features\n";
-
 	if ( defined $feature ) {
 		if ( lc($feature) =~ m/array/ ) {
-			foreach my $f (@$feature) {
-				next unless ( ref($f) eq "gbFeature" );
-				if ( !defined $f->Tag() || !defined $f->Start() ) {
-					warn
-					  "gbFile Features has got a incomplete gbFeature! name= ",
-					  $f->Tag(), " and start = ", $f->Start(), "\n",
-					  $f->getAsGB(), "\n";
-				}
-				unless (
-					defined $self->{feature_locations}->{ $f->Tag() }
-					->{ $f->Start() } )
-				{
-					#print "I adda new feature!\n";
-					my $temp = gbFeature->new( 'test', '1..2' );
-					$temp->parseFromString( $f->getAsGB() )
-					  ;    ## copy the gbFeature!
-					push( @$features, $temp );
-				}
-				unless ( defined $self->{feature_locations}->{ $f->Tag() } ) {
-					$self->{feature_locations}->{ $f->Tag() } = {};
-				}
-				$self->{feature_locations}->{ $f->Tag() }->{ $f->Start() } = 1;
-			}
+			map { $self->Features( $_, $force ) } @$features;
 		}
 		elsif ( ref($feature) eq "gbFeature" ) {
 			push( @$features, $feature )
@@ -743,10 +723,15 @@ sub setLocus {
 
 =head3 arguments 
 
-[0]: position in basepairs where the substring of the seqiuence should start
+[0]: position in basepairs where the substring of the seqiuence should start (start at 0!)
 
 [1]: position in basepairs where the substring of the seqiuence should end
 
+or the other option:
+
+[0]: the gbFeature you want
+
+[1]: 'whole' (default) or only 'covered' or a numer to add to th region in both sides
 =head3 return values
 
 the substring of the sequence ore the whole sequence if start and end where not defined
@@ -756,23 +741,28 @@ the substring of the sequence ore the whole sequence if start and end where not 
 sub Get_SubSeq {
 	my ( $self, $start, $end ) = @_;
 	## in case I am a non standard chromosomal part instead of a gbFile I need to care about a potential offset!
+	$start = 0 if ( $start < 0 );
+	if ( ref($start) eq "gbFeature" ) {
+		$end ||='';
+		if ( $end eq "covered" ) {
+			return $start->{'region'}->getCoveredSequence($self);
+		}elsif( $end =~ m/^\d+$/ ) {
+			return $start->{'region'}->getSequence($self, $end);
+		}
+		else {
+			return $start->{'region'}->getSequence($self);
+		}
+	}
+	$start = 0 unless ( defined $start);
+	$end ||= $self->Length();
+#	print "I am supposed to return the sequence from $start to $end\n";
 	if ( defined $self->{'SEQ_offset'} ) {
 		$start += $self->{'SEQ_offset'};
 		$end   += $self->{'SEQ_offset'};
 	}
 
 	#1..3
-
-	if ( defined $start ) {
-		if ( defined $end ) {
-			return
-			  substr( $self->Sequence(), $start - 1, $end - ( $start - 1 ) );
-		}
-		else {
-			return
-			  substr( $self->Sequence(), $start, $self->Length() - $start );
-		}
-	}
+	return substr( $self->Sequence(), $start, $end - $start );
 	return $self->{seq};
 }
 
@@ -869,25 +859,9 @@ sub WriteAsGB_toFile {
 	my ( $temp, $line );
 
 	open( OUT, ">$filename" ) or die "konnte file $filename nicht anlegen!\n";
-
-	print OUT $self->{header}->getAsGB();
-
-	$temp = $self->Features();
-	foreach my $feature ( sort FeatureByStart @$temp ) {
-		if ( defined $start && defined $end ) {
-			print OUT $feature->getAsGB( $start, $end )
-			  if ( $feature->End > $start && $feature->Start < $end );
-		}
-		else {
-			print OUT $feature->getAsGB( 0, $self->{seq_length} );
-		}
-	}
-
-	$temp = $self->gbSequence( $start, $end );
-	print OUT "ORIGIN\n";
-	foreach $line (@$temp) {
-		print OUT $line;
-	}
+	
+	print OUT  $self->getAsGB('header features sequence',$start, $end);
+	
 	print "genbank file written as $filename\n";
 	close OUT;
 
@@ -896,8 +870,8 @@ sub WriteAsGB_toFile {
 sub getAsGB {
 	my ( $self, $Include, $start, $end) = @_;
 
-	$start = 1 unless ( defined $start);
-	$end = $self->Length() unless ( defined $end );
+	$start ||= 0;
+	$end ||= $self->Length();
 	my $string = '';
 	$Include = 'header features sequence' unless ( defined $Include );
 
@@ -909,14 +883,8 @@ sub getAsGB {
 	if ( $Include =~ m/features/ ) {
 		my $temp = $self->Features();
 		foreach my $feature ( sort FeatureByStart @$temp ) {
-
-			if ( defined $start && defined $end ) {
-				$string .= $feature->getAsGB( $start, $end )
+			$string .= $feature->getAsGB( $start, $end )
 				  if ( $feature->End > $start && $feature->Start < $end );
-			}
-			else {
-				$string .= $feature->getAsGB( 0, $self->{seq_length} );
-			}
 		}
 	}
 	if ( $Include =~ m/sequence/ ) {
@@ -961,24 +929,8 @@ sub WriteAsGB {
 
 	open( OUT, ">$filename" ) or die "konnte file $filename nicht anlegen!\n";
 
-	print OUT $self->{header}->getAsGB();
-
-	$temp = $self->Features();
-	foreach my $feature ( sort FeatureByStart @$temp ) {
-		if ( defined $start && defined $end ) {
-			print OUT $feature->getAsGB( $start, $end )
-			  if ( $feature->End > $start && $feature->Start < $end );
-		}
-		else {
-			print OUT $feature->getAsGB( 0, $self->{seq_length} );
-		}
-	}
-
-	$temp = $self->gbSequence( $start, $end );
-	print OUT "ORIGIN\n";
-	foreach $line (@$temp) {
-		print OUT $line;
-	}
+	print OUT $self->getAsGB('header features sequence',$start, $end);
+	
 	print "genbank file written as $filename\n";
 	close OUT;
 
@@ -1108,33 +1060,6 @@ sub isVersion {
 	return $self->Version() =~ m/$version/;
 }
 
-sub isMultilineStart {
-	my ( $self, $string, $qchars ) = @_;
-
-	my ( $qL, $qR );    # left and right quote chars, like ' or ()
-	my ($quote_level);  # current quote level
-	my ( $myValue, $temp );
-
-	( $qL, $qR ) = split( "", $qchars );
-
-	$myValue = $quote_level = 0;
-	my @string = split( "", $string );
-	$temp = @string;
-	foreach $temp (@string) {
-		if ( $temp eq $qL ) {
-			$myValue++;
-		}
-		if ( $temp eq $qR && !( $qR eq '"' ) ) {
-			$myValue--;
-		}
-	}
-	if ( $qchars =~ m/"/ ) {    #"
-		return 0 if ( $myValue / 2 == int( $myValue / 2 ) );
-		return 1;
-	}
-	return 0 if ( $myValue == 0 );
-	return 1;
-}
 
 =head2 parseString
 
@@ -1355,79 +1280,40 @@ sub openFile {
 				$header = 1;
 				$i      = 0;
 			}
-
-			#print "this line was added to the headers:\n$line\n";
 		}
-		if ( $header == 1 ) {
-			chomp $line;
-			if (   $line =~ m/\d+\.\.\d+/
-				&& $self->isMultilineStart( $line, "()" ) == 1 )
-			{
-				while (<GBfile>) {
-					m/                     (.*)$/;
-					$line = "$line $1";
-					last
-					  if ( $self->isMultilineStart( $line, "()" ) == 0
-						|| $_ eq "" );
-				}
-
-			}
-			elsif ( $self->isMultilineStart( $line, '""' ) == 1 ) {
-				while (<GBfile>) {
-
-					#                chop $_;
-					m/                     (.*)$/;
-					$line = "$line $1";
-
-					#                print "\tfeature Tag\t";
-					last
-					  if ( $self->isMultilineStart( $line, '""' ) == 0
-						|| $_ eq "" );
-				}
-			}
-
-			#print "gbFile openFile after multiline dtection line =\n$line\n";
+		elsif ( $header == 1 ) { ## features
 			if ( $line =~ m/^     (\w+) *(.*)/ ) {
-				print "gbFile -> openFile () new gbFeature $1,$2\n"
-				  if ( $self->{'debug'} );
-				my $feature = gbFeature::new( "gbFeature", $1, $2 );
-				$return[ $Ri++ ] = $feature;
-				next;
+				if ( scalar(@feature) > 0 ) {
+					my $feature = gbFeature->new(  'bb', '1..2' );
+					$feature -> parseFromString ( join("",@feature) );
+					$self->Features( $feature );
+					@feature = ();
+				}
 			}
-			if ( $line =~ m/ *.(\w*)=(".+")/ ) {
-				$return[ $Ri - 1 ]->AddInfo( $1, $2 );
-
-				#   print "AddInfo($1,$2)\n";
-				next;
-
-			}
-			if ( $line =~ m/ *i.(\w+)=(.+)/ ) {
-				$return[ $Ri - 1 ]->AddInfo( $1, $2 );
-				next;
-			}
-			if ( $line =~ m/ORIGIN/ ) {
-
+			elsif ( $line =~ m/ORIGIN/ ) {
+				if ( scalar(@feature) > 0 ) {
+					my $feature = gbFeature->new(  'bb', '1..2' );
+					$feature -> parseFromString ( join( "",@feature) );
+					$self->Features( $feature );
+					@feature = ();
+				}
 				print
-				  "Feature einlesen ist fertig: $Ri features wurden gelesen!\n"
+				  "Feature einlesen ist fertig: ".scalar(@{$self->Features()})." features wurden gelesen!\n"
 				  if ( $self->{'debug'} );
 				$header = 2;
 				$i      = 0;
 				next;
 			}
+			push (@feature, $line );
 		}
-		if ( $line =~ m/ORIGIN/ && $header == 0 ) {
-			$header = 2;
-		}
-		if ( $header == 2 && !( $line =~ m/ORIGIN/ ) ) {
-
-#            print "read_GBfile_1 -> bin an der Sequenz angekommen!\n$Ri Features\n";
+		elsif ( $header == 2 ) {
+			next if ( $line =~ m/ORIGIN/ );
 			if ( $line =~ m/ *\d* *(\w[\w ]*)/ ) {
 				$line     = $1;
 				@line     = split( " ", $line );
 				$line     = join( "", @line );
 				$sequence = "$sequence$line" unless ( $1 eq "//" );
 			}
-
 		}
 	}
 	close(GBfile);

@@ -116,6 +116,9 @@ $task_description .= " -version $version" if (defined $version);
 $task_description .= " -referenceTag $referenceTag" if (defined $referenceTag);
 
 ## Do whatever you want!
+unless ( -d $outdir ){
+	system( "mkdir -p $outdir");
+}
 if ( -f "$outdir/get_NCBI_genome.log" ){
 	open ( LOG , ">>$outdir/get_NCBI_genome.log" );
 }

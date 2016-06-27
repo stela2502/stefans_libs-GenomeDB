@@ -772,41 +772,47 @@ sub get_as_bed_file {
 		@$search[$helper] = $dataset->{$_};
 		@$where[ $helper++ ] = [ $_, '=', 'my_value' ];
 	}
-	$data_table = get_data_table_4_search( {
-	'search_columns' => [ 'gbFile_id', 'start', 'end', 'name', 'gbString' ],
+	$data_table = $self->get_data_table_4_search( {
+	'search_columns' => [ map{ "gbFeaturesTable.$_"} 'gbFile_id', 'start', 'end', 'name', 'gbString' ],
 	'where' => $where,
 }, @$search);
+	#Carp::confess ($data_table->AsTestString() );
 	my $calc = $self->get_chr_calculator(); # chr start end name
 	## I will just translate the features from gbFile_id to chromosome name
+	my ($gbFeature,@a, @r);
 	for( my $i = 0; $i< $data_table->Lines(); $i ++ ) {
-		push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome( @{@{$data_table->{'data'}}[$i]}[0,1,2]), @{@{$data_table->{'data'}}[$i]}[3] ] );
+		@a = @{@{$data_table->{'data'}}[$i]};
+		$gbFeature = $self->str_to_gbFeature( $a[4] );
+		if ( $dataset->{'first_exon'} ) {
+			@r = $gbFeature->{'region'}->{'regions'};
+			if ( $gbFeature->isComplement() ) {
+				$r[0] = $r[$#r];
+			}
+			push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome(  $a[0], $r[0]->{start}, $r[0]->{end} ), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} ) ] );			
+		}
+		if ( $dataset->{'promoter'}) {
+			if ( $gbFeature->isComplement() ) {
+				push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome(  $a[0], $a[2], $a[2]+3000 ), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} )  ] );			
+			}
+			else {
+				push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome(  $a[0], $a[1]-3000, $a[1] ), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} )  ] );
+			}
+		}
+		else {
+			push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome( @a[0..2]), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} )  ] );
+		}
 	}
 	
-#	my ( $SQL, $max_count ) = $self->prepare_paged_search(
-#		{
-#			'search_columns' => [ 'gbFile_id', 'gbString' ],
-#			'where'          => $where,
-#		},
-#		@$search
-#	);
-#	for ( my $i = 1 ; $i < ( $max_count / 200 ) + 1 ; $i++ ) {
-#		print "I try to get the data for the gene page $i\n";
-#		$data_table = $self->get_paged_result(
-#			{
-#				'SQL_search' => $SQL,
-#				'per_page'   => 200,    # to get 200 entries per page
-#				'page'       => $i,     #to get the second page
-#			}
-#		);
-#		print "I got "
-#		  . $data_table->Lines()
-#		  . " result gbFeatures for page $i!\n";
-#		$self->__process_gbFeatures_4_bed_file( $s_start, $s_end, $e_start,
-#			$e_end, $data_table, $bed_file );
-#	}
-
 	return $bed_file;
 }
+
+sub str_to_gbFeature {
+	my ( $self, $str) =@_;
+	my $t = gbFeature->new('t', '1..2');
+	$t->parseFromString( $str );
+	return $t;
+}
+
 
 sub __return_bed_array{
 	my ( $self, $gbFeature, $where, $start, $end ) = @_;

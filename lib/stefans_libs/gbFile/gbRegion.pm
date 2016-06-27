@@ -86,10 +86,10 @@ sub new {
 
 	my ( $class, $region ) = @_;
 
-	my $self = { items => [], regions => undef };
+	my $self = { items => [], regions => [] };
 
 	bless( $self, "gbRegion" );
-	$self->Region($region);
+	$self->Region($region) unless ( ref($region) =~ m/\w/ );
 	return $self;
 }
 
@@ -112,13 +112,29 @@ A genbank formated region string.
 
 =cut
 
-sub getAsGB {
+sub Print {
 	my ( $self, $start, $end ) = @_;
 	$start = 0 unless ( defined $start );
 	unless ( defined $end ) {
 		$end = $self->End();
 	}
-	return $self->Print( $start, $end );
+	my $ret = $self->getAsGB( $start, $end );
+	$ret =~ s/\s+//g;
+	return $ret;
+}
+
+sub getSequence{
+	my ( $self, $gbFile, $delta  ) = @_;
+	$delta ||= 0;
+	$delta += 1;
+	return $gbFile->Get_SubSeq( $self->{start} -$delta, $self->{end} + $delta -2 );
+}
+
+sub getCoveredSequence{
+	my ( $self, $gbFile, $delta ) = @_;
+	$delta ||= 0;
+	$delta += 1;
+	return map {$gbFile->Get_SubSeq($_->{start} -$delta, $_->{end} + $delta-2 ) } @{$self->{regions}};
 }
 
 =head3 Print
@@ -141,70 +157,83 @@ Each region item is used to create 'region'. From each start and end the value a
 A genbank formated region string.
 
 =cut
+sub fix_end{
+	my ($self, $str) = @_;
+	unless ($str=~ s/\.\.(\d+,)$/\.\.>$1/ ) {
+		warn "The fix_end did not work on the string $str\n" if ( $self->{'debug'});
+	};
+	return $str;
+}
 
-sub Print {
+sub getAsGB {
 	my ( $self, $start, $end ) = @_;
-
-	my ( $regions, $print, $now_start, $now_end, $i, $problematic );
-	$print   = '';
+	my ( $regions, @print, $now_start, $now_end, $problematic, $i, $add );
+	
+	$start ||= 0;
+	$end ||= 1e+10;
+	my $gbTab = '                     ';
+	
+	@print   = ($gbTab); ## has to be removed afterward, but is necessary for the formating
 	$regions = $self->{regions};
 	return "1..2" unless ( ref($regions) eq "ARRAY" );
 	if ( defined $self->Complement() ) {
-		$print = $self->Complement();
-		$print = "$print(";
+		$print[0] .= $self->Complement()."(";
+	}
+	if ( defined $self->Join() ) {
+		$print[0] .= "join(";
 	}
 	$i = 0;
-	$self->Join("join") if ( @$regions > 1 );
-	if ( defined $self->Join() ) {
-		my @print = ( $print, "join(" );
-		$print = join( "", @print );
-	}
-	foreach my $region ( sort byRegionStart @$regions ) {
+	
+	foreach my $region ( sort {$a->{start} <=> $b->{start}} @$regions ) {
 		if ( $region->{tag} eq "normal" ) {
 			$now_start = $region->{start} - $start;
 			$now_end   = $region->{end} - $start;
 			if ( $now_start < 1 ) { ## fängt vor der zu schreibenden Region an!
-				next
-				  if ( $region->{end} - $start < 1 )
-				  ;                 ## && hört auch vorher auf -> weg damit!
+				if ( $region->{end} - $start < 1 ){## && hört auch vorher auf -> weg damit!
+					$print[$#print] = $self->fix_end($print[$#print]);
+					next;
+				}                 
 				$now_start = "1";
 				$region->{tag_start} = "<";
 			}
-			next
-			  if ( $region->{start} > $end )
-			  ;    ## fängt nach der zu schreibenden Region an -> weg damit!
+			if ( $region->{start} > $end ){## fängt nach der zu schreibenden Region an -> weg damit!
+				$print[$#print] = $self->fix_end($print[$#print]);
+				next; 
+			} 
 			if ( $region->{end} > $end )
 			{ ## hört nach dem zu schreibenden Bereich auf, fängt aber vorher an!
 				$now_end = $end;
 				$region->{tag_end} = ">";
 			}
-			$i++;
+			
 			$problematic = 1 if ( $now_start > $now_end );
-			$print =
-"$print$region->{tag_start}$now_start..$region->{tag_end}$now_end,"
-			  if ( defined $start );
-
-			$print =
-"$print$region->{tag_start}$region->{start}..$region->{tag_end}$region->{end},"
-			  unless ( defined $start );
+			if ( defined $start ) {
+				$add = "$region->{tag_start}$now_start..$region->{tag_end}$now_end,"
+			}else {
+				$add = "$region->{tag_start}$region->{start}..$region->{tag_end}$region->{end},"
+			}
 		}
 		if ( $region->{tag} eq "single" ) {
 			$now_start = $region->{start} - $start;
-			next
-			  if ( $now_start < 1 )
-			  ;    ## liegt nicht in der zu schreibenden Region!
-			next
-			  if ( $region->{start} > $end )
-			  ;    ## liegt nach der zu schreibenden Region!
-			$i++;
-			$print = "$print$now_start,";
+			if ( $now_start < 1 or $region->{start} > $end ){
+				next;
+			}
+			$add = "$now_start,";
 		}
-
+		if ( length($print[$#print].$add) > 79 ) {
+			push ( @print, $gbTab.$add);
+		}else {
+			$print[$#print] .= $add;
+		}
+		$i ++;
 	}
+	my $print = join("\n", @print);
 	chop $print;
-	return undef if ( $i == 0 );
-	$print = "$print)" if ( defined $self->Complement() );
-	$print = "$print)" if ( defined $self->Join() );
+	$print .= ")" if ( $self->Complement() );
+	$print .= ")" if ( $self->Join() );
+	
+	return undef if ( $i ==0 );
+	
 	if ( defined $problematic ) {
 		my @array;
 		$self->{regions} = undef;
@@ -212,8 +241,8 @@ sub Print {
 		$self->Region($print);
 		return $self->Print( $start, $end );
 	}
+	$print =~ s/^$gbTab//;
 	return $print;
-
 }
 
 sub byRegionStart {
@@ -503,28 +532,16 @@ ParseRegions a reference to the list of parsed region pieces, the overall start 
 
 sub ParseRegions {
 	my ( $self, $regions ) = @_;
-	my ( @regions, $a, $return, $temp, @starts, @ends, @return, $start, $end );
-	@regions = split( ",", $regions );
-	$return  = $self->{regions};
-	$return  = [] unless ( ref($return) eq "ARRAY" );
+	my ( $return, $temp, @starts, @ends, @return, $start, $end );
 
-	$a = @$return;
-	$self->{'start'} = $self->{'end'} = undef;
-	for ( my $i = 0 ; $i < @regions ; $i++ ) {
-		@$return[$a] = $self->Itemize_old( $regions[$i] );
-		next unless ( defined @$return[$a] );
-		$self->{'start'} = @$return[$a]->{start} unless ( defined $self->{'start'} );
-		if ( defined @$return[$a]->{end} ){
-			$self->{'end'} = @$return[$a]->{end};
-		}
-		else {
-			$self->{'end'} = @$return[$a]->{start};
-		}
-		$a++;
-	}
-	$self->{regions} = $return;
-
-	return \@return, $self->{'start'}, $self->{'end'};
+	$return  = $self->{regions} ||= [];
+	
+	push ( @$return, map{ $self->Itemize_old($_)} split( ",", $regions ) );
+	$self->{'start'} = @$return[0] ->{'start'};
+	$self->{'end'}   = @$return[$#return] ->{'end'};
+	$self->{'end'} ||= @$return[$#return] ->{'start'};
+	
+	return $return, $self->{'start'}, $self->{'end'};
 }
 
 sub findStartEnd {
@@ -626,14 +643,16 @@ sub Itemize_old {
 	my ( $self, $region, $i ) = @_;
 
 	my ( $start, $end, $return );
-
-	if ( $region =~ m/[<>]?(\d+)[<>]?\.\.[<>]?(\d+)[<>]?/ ) {
+	$self->Complement( 'complement' ) if ( $region =~m/complement/);
+	$self->Join('join') if ( $region =~ m/join/ );
+	
+	if ( $region =~ m/([<>]?)(\d+)\.\.([<>]?)(\d+)/ ) {
 		$return = {
 			tag       => 'normal',
-			start     => $1,
-			end       => $2,
-			tag_start => "",
-			tag_end   => ""
+			start     => $2,
+			end       => $4,
+			tag_start => $1,
+			tag_end   => $3
 		  };
 	}
 	elsif ( $region =~ m/(\d+)\.(\d+)/ ) {
@@ -655,13 +674,13 @@ sub Itemize_old {
 			tag_end   => ""
 		};
 	}
-	elsif ( !defined $return && $region =~ m/^(\d+)/ ) {
-		print "we got the single tag!\n";
+	elsif ( !defined $return && $region =~ m/^(\d+)$/ ) {
+		print "we got the single tag! $region\n";
 		$return =
 		  { tag => "single", start => $1, tag_start => "", tag_end => "" };
 	}
 	unless ( defined $return ) {
-		print "keine Verwendung für $region\n";
+		Carp::confess( "keine Verwendung für $region\n" );
 		return undef;
 	}
 	return $return unless ( defined $return->{end} );

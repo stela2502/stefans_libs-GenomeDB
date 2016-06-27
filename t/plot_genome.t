@@ -64,7 +64,7 @@ $bed_file->read_file("$plugin_path/data/temp_data_red.bed");
 $figure->AddDataset( $bed_file, 'red', 'A bed file in red' );
 
 ## 3: blue information from a bedGraph file
-my $bedGraph_file = stefans_libs_file_readers_bedGraph_file->new();
+my $bedGraph_file = stefans_libs::file_readers::bedGraph_file->new();
 $bedGraph_file->read_file("$plugin_path/data/temp_data_blue.bedGraph");
 $figure->AddDataset( $bedGraph_file, 'blue', 'a bedGraph in blue' );
 ## After that the figure should be free ready to become plotted!

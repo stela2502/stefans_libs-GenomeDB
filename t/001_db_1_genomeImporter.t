@@ -3,6 +3,9 @@ use strict;
 use warnings;
 use Test::More tests => 9;
 use File::HomeDir;
+
+use stefans_libs::database::system_tables::configuration;
+
 BEGIN { use_ok 'stefans_libs::database::genomeDB::genomeImporter' }
 my $home = File::HomeDir->my_home();
 
@@ -13,31 +16,30 @@ my $plugin_path = "$FindBin::Bin";
 
 #warn "we do not test the download capabilites of this lib - that would take too much time and bandwidth ;-)";
 
-open( DB, ">$home/create_test.db" )
-  or die "could not create file $home/create_test.db\n";
-print DB "create database geneexpress;\n";
-close(DB);
-open( DB, ">$home/drop_test.db" )
-  or die "could not drop file $home/create_test.db\n";
-print DB "drop database geneexpress;\n";
-close(DB);
-
-#system("mysql -uroot -palmdiR < $home/drop_test.db");
-#system("mysql -uroot -palmdiR < $home/create_test.db");
-
 my ( $value, @values );
 
-my $genomeImporter = genomeImporter->new("geneexpress");
+my $config = configuration->new();
+$config -> SetConfig ( 'externalFiles_storage_path' , $plugin_path."/data/output/database_files_path/" );
+system( "mkdir -p $plugin_path/data/output/database_files_path/");
+
+my $genomeImporter = genomeImporter->new();
+#$genomeImporter->{genomeDB}->{dbh}->do( 'drop table genome; drop table')
+
+
 is_deeply( ref($genomeImporter), 'genomeImporter',
 	'simple test of function genomeImporter -> new()' );
 
-$genomeImporter->{databaseDir} = "$plugin_path/data";
+$genomeImporter->{'databaseDir'} = "$plugin_path/data";
 $genomeImporter->{'noDownload'} = 1; # I have artificial files here!
 $genomeImporter->import_refSeq_genome_for_organism("hu_genome");
 
-my $genomeDB = genomeDB->new( variable_table->getDBH() );
+## this should have created some files:
 
-#$genomeDB ->printReport();
+foreach ( 1..3 ) {
+	ok ( -f "$plugin_path/data/output/database_files_path/genomeDB_test/$_.dta", 'sequence file was created' );
+}
+
+my $genomeDB = genomeDB->new();
 
 my $chromsomesTable = $genomeDB->GetDatabaseInterface_for_Organism("hu_genome");
 
@@ -52,6 +54,7 @@ is_deeply(
 	"I get the gbFile location on the chromosome!"
 );
 
+
 $value = $chromsomesTable->get_Columns(
 	{ 'search_columns' => ['gbString'] },
 	{
@@ -65,9 +68,9 @@ is_deeply(
 	$value,
 	[
 		'     source          1..34821
-                     /mol_type="genomic DNA"
-                     /organism="Homo sapiens"
                      /db_xref="taxon:9606"
+                     /organism="Homo sapiens"
+                     /mol_type="genomic DNA"
                      /chromosome="Y"
 '
 	],
@@ -75,6 +78,8 @@ is_deeply(
 );
 
 $value = $chromsomesTable->get_chromosomal_region( 'chrY', 5, 967557 );
+
+print "Probably a problem if we do not get sequence here:\n".join("\n",@{$value->gbSequence()})."\n";
 
 my $str = '';
 

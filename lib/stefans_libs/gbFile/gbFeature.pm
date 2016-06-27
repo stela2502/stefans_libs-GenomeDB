@@ -15,8 +15,10 @@ package gbFeature;
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 
+use stefans_libs::gbFile::file_parser;
 use stefans_libs::gbFile::gbRegion;
 
+use base( 'stefans_libs::gbFile::file_parser' );
 =for comment
 
 This document is in Pod format.  To read this, use a Pod formatter,
@@ -109,6 +111,7 @@ sub new {
 	}
 
 	my $self = {
+		gbTab => "                     ",
 		seqeuce     => undef,
 		seqLength   => undef,
 		region      => $Region,
@@ -130,95 +133,93 @@ sub new {
 	return $self;
 }
 
-sub isMultilineStart {
-	my ( $self, $string, $qchars ) = @_;
-
-	my ( $qL, $qR );    # left and right quote chars, like ' or ()
-	my ($quote_level);  # current quote level
-	my ( $myValue, $temp );
-
-	( $qL, $qR ) = split( "", $qchars );
-
-	$myValue = $quote_level = 0;
-	my @string = split( "", $string );
-	$temp = @string;
-	foreach $temp (@string) {
-		if ( $temp eq $qL ) {
-			$myValue++;
-		}
-		if ( $temp eq $qR && !( $qR eq '"' ) ) {
-			$myValue--;
-		}
-	}
-	if ( $qchars =~ m/"/ ) {    #"
-		return 0 if ( $myValue / 2 == int( $myValue / 2 ) );
-		return 1;
-	}
-	return 0 if ( $myValue == 0 );
-	return 1;
-}
+#sub isMultilineStart {
+#	my ( $self, $string, $qL, $qR ) = @_;
+#
+#	my ($quote_level);  # current quote level
+#	my ( $myValue, $temp );
+#
+#
+#	$myValue = $quote_level = 0;
+#	my @string = split( "", $string );
+#	$temp = @string;
+#	foreach $temp (@string) {
+#		if ( $temp eq $qL ) {
+#			$myValue++;
+#		}
+#		if ( $temp eq $qR && !( $qR eq '"' ) ) {
+#			$myValue--;
+#		}
+#	}
+#	if ( $qL eq $qR ) {    #"
+#		if ( $myValue % 2 == 0 ){
+#			return 0
+#		}else {
+#			#warn "OK and this string is  multiline start/end ($qL, $qR ; $myValue) ?:'$string'\n";
+#			return 1
+#		}
+#	}
+#	return $myValue;
+#}
 
 sub parseFromString {
 	my ( $self, $string ) = @_;
 
 	return 0 unless ( $string =~ m/\w/ );
 
-	my ( $line, @string, $lineNr );
+	my ( $line, @string, $lineNr, $brackets );
 	@string = ( split( "\n", $string ) );
 	$self->{information} = {};
 	$self->{region}      = undef;
 	for ( my $i = 0 ; $i < @string ; $i++ ) {
 		$line   = $string[$i];
 		$lineNr = $i;
-		if (   $line =~ m/\d+\.\.\d+/
-			&& $self->isMultilineStart( $line, "()" ) == 1 )
+		## check for position str
+		my $brackets = 0;
+		if (   $line =~ m/<?>?\d+\.\.<?>?\d+/
+			and $brackets = $self->isMultilineStart( $line, "(",")" ) )
 		{
-			for ( $i++ ; $i < @string ; $i++ ) {
-				$string[$i] =~ m/                     (.*)$/;
-				warn "no match to pattern in line $line\n"
-				  unless ( defined $1 );
-				$line = "$line $1";
-				last
-				  if ( $self->isMultilineStart( $line, "()" ) == 0
-					|| $string[$i] eq "" );
+			warn "Multi brackets start: \$brackets = $brackets\n\t$line\n" if ( $self->{debug} );
+			for ( $i = $i+1 ; $i < @string ; $i++ ) {
+				$line .= $self->format_match( $string[$i] );
+				warn "brackets diff = ".$self->isMultilineStart( $self->format_match( $string[$i] ) , "(",")" )."\n" if ( $self->{'debug'});
+				last  if ( ($brackets += $self->isMultilineStart( $self->format_match( $string[$i] ) , "(",")" )) == 0 );
 			}
-
+			warn "Final region line: $line\n" if ( $self->{debug} );
 		}
-		elsif ( $self->isMultilineStart( $line, '""' ) == 1 ) {
-			for ( $i++ ; $i < @string ; $i++ ) {
-
-				#                chop $_;
-				$string[$i] =~ m/                     (.*)$/;
-				$line = "$line $1";
-
-				#                print "\tfeature Tag\t";
-				last
-				  if ( $self->isMultilineStart( $line, '""' ) == 0
-					|| $string[$i] eq "" );
+		elsif ( $self->isMultilineStart( $line, '"','"' ) == 1 ) {
+			for ( $i = $i+1 ; $i < @string ; $i++ ) {
+				$line .= " ".$self->format_match( $string[$i] );
+				last if ( $self->isMultilineStart( $line, '"','"' ) == 0 );
 			}
+			warn "final normal line: $line\n" if ( $self->{debug} );
 		}
-
-		#                ######
-		if ( $lineNr == 0 ) {
-			unless ( $line =~ m/^ +(\w+) +(.+)/ ) {
-				warn "no gbFeature string\n$string\n$!\n";
-				return 0;
-			}
+		## multiline finished whole line in $line
+		if ( $line =~ m/     (\w+)\s+(.*)$/ ){
 			$self->{tag}    = $1;
 			$self->{region} = gbRegion->new($2);
-			next;
 		}
-		if ( $line =~ m/ *.(\w*)=(['"].+['"])/ ) {
+		elsif ( $self->format_match($line) =~ m/([\w\_]*)=('?"?.+'?"?)\s*$/ ) {
 			$self->AddInfo( $1, $2 );
-			next;
-
 		}
-		if ( $line =~ m/ *i.(\w+)=(.+)/ ) {
+		elsif ( $self->format_match($line) =~ m/i.([\w\_]+)=(.+)$/ ) {
 			$self->AddInfo( $1, $2 );
-			next;
+		}elsif ( $self->format_match($line) =~ /^.(\w+)$/ ) {
+			$self->AddInfo( $1 );
+		}else {
+			Carp::confess ( "Not supported feature line: $line\n'".$self->format_match($line)."'\n");
 		}
 	}
 	return $self;
+}
+
+
+sub format_match{
+	my ( $self, $str ) =@_;
+	if ( $str =~ m/$self->{'gbTab'}(.*)$/ ){
+		return $1;
+	}
+	Carp::confess ( "The line did not match fto the format requirements:\n$str\n$self->{'gbTab'}(.*)\n");
 }
 
 =head2 ChangeRegion_Add
@@ -665,7 +666,7 @@ sub getAsGB {
 		$line,        $line_i, @range, $temp, $templine,
 		$information, $first,  $i,     @lineArray
 	);
-
+	## fix the first line + region
 	$line = "     ";
 	$line = "$line$self->{tag}";
 	for ( my $i = 5 + length( $self->{tag} ) ; $i < 21 ; $i++ ) {
@@ -674,43 +675,31 @@ sub getAsGB {
 	$temp = $self->{region}->getAsGB( $start, $end );
 	return undef unless ( defined $temp );
 	$line = "$line$temp";
-
-	#  return $line unless ( length($line) > 80 );
-	$line_i = 1;
-	if ( length($line) > $line_i * 79 ) {
-		@range = split( ",", $line );
-		$line = "";
-		foreach $temp (@range) {
-			next if ( $temp eq '1' );
-			$templine = "$line$temp,";
-			if ( length($templine) > $line_i * 79 ) {
-				$line_i++;
-				$line = "$line\n                     $temp,";
-			}
-			else { $line = "$line$temp,"; }
-		}
-		chop $line;
-		chomp $line;
-	}
+	chomp $line;
 	push( @lineArray, $line );
-
 	### Die erste zeile ist geschafft!!
-	while ( my ( $tag, $info ) = each %{ $self->INFORMATION() } ) {
+	
+	my ( $tag, $info);
+	foreach my $tag ( @{$self->{'information_order'}} ){
+		$info = $self->{'information'}->{$tag};
 		if ( $info =~ m/ARRAY/ ) {
+			if ( scalar(@$info) == 0 ) {
+				## this is a no value tag!
+				push( @lineArray, $self->_feature2string( $tag ) );
+			}
 			foreach my $realInfo (@$info) {
 				push( @lineArray, $self->_feature2string( $tag, $realInfo ) );
 			}
 		}
 		else {
 			push( @lineArray, $self->_feature2string( $tag, $info ) );
-
 		}
 	}
 
 	foreach my $string ( keys %{ $self->{match} } ) {
 		$line =
 		  $self->_feature2string( undef, $string,
-			"                     /note=\"match mode " );
+			"$self->{'gbTab'}/note=\"match mode " );
 		$temp = chop $line;
 		$line = "$line$temp" unless ( $temp eq '"' );
 		$line = "$line matches $information->{$string} times\"";
@@ -726,7 +715,7 @@ sub Info_AsString {
 	foreach my $tag ( keys %{ $self->INFORMATION() } ) {
 		$str .= "$tag ";
 		foreach my $string ( @{ $self->INFORMATION()->{$tag} } ) {
-			$str .= ", $string";
+			$str .= ",$string";
 		}
 		$str .= "; ";
 	}
@@ -734,61 +723,42 @@ sub Info_AsString {
 }
 
 sub INFORMATION {
-	my ($self) = @_;
+	my ($self, $key) = @_;
 	unless ( ref( $self->{'information'} ) eq "HASH" ) {
-		return {};
+		$self->{'information'} = {};
+	}
+	if ( defined $key ) {
+		$self->{'information'}->{$key} ||= [];
+		return $self->{'information'}->{$key};
 	}
 	return $self->{'information'};
 }
 
 sub _feature2string {
 	my ( $self, $tag, $info, $alternativeTagString ) = @_;
-
+	
+	unless ( defined $info ) {
+		return "$self->{'gbTab'}/$tag";
+	}
 	my (
-		$temp2, $temp,     $first, $line_i, $line,
+		$temp2, $temp,     $first, $line_i, @line,
 		@range, $tempLine, @temp,  $splitString
 	);
-	$info   = "\"$info\"" unless ( $info =~ m/^"/ );             #"
-	$line   = "                     /$tag=";
-	$line_i = 1;
-	$first  = 1;
-	@range  = split( " ", $info );
+	$line[0]   = "$self->{'gbTab'}/$tag=";
+	
+	@range  = split( /\s+/, $info );
 	@range  = split( "", $info ) if ( $tag eq "translation" );
-	for ( my $i = 0 ; $i < @range ; $i++ ) {
-		$temp        = $range[$i];
-		$splitString = " ";
-		$splitString = "" if ( $i == 0 );
-
-		if ( length($temp) > 20 ) {
-			@temp = split( "", $temp );
-			foreach my $string2add (@temp) {
-				( $line, $line_i ) =
-				  $self->_add2multiLineString( $line, $string2add, "",
-					$line_i );
-			}
-		}
-		else {
-			( $line, $line_i ) =
-			  $self->_add2multiLineString( $line, $temp, $splitString,
-				$line_i );
+	$line[0]  .= shift(@range);
+	foreach (@range) {
+		if ( length( $line[$#line].$_) > 78 ){#space you need to add
+			push( @line,"$self->{'gbTab'}$_");
+		}else {
+			$line[$#line].= " $_";
 		}
 	}
-	return $line;
+	return join("\n", @line );
 }
 
-sub _add2multiLineString {
-	my ( $self, $lines, $string2add, $separation, $lineCount ) = @_;
-	my ($tempLine);
-	$tempLine = "$lines$separation$string2add";
-	if ( length($tempLine) > $lineCount * 80 - 1 ) {
-		$lineCount++;
-		$line = "$line\n                     $string2add";
-	}
-	else {
-		$line = $tempLine;
-	}
-	return $line, $lineCount;
-}
 
 =head2 AddInfo
 
@@ -806,13 +776,15 @@ Add feature information to this feature.
 
 sub AddInfo {
 	my ( $self, $tag, $info ) = @_;
-
-	unless ( defined $self->{information} ) {
-		$self->{information} = {};
+	$self->{information} ||= {};
+	$self->{information_order} ||= [];
+	unless ( defined $self->{information}->{$tag} ){
+		$self->{information}->{$tag} = [];
+		push( @{$self->{information_order}}, $tag );
 	}
-	$self->{information}->{$tag} = []
-	  unless ( defined $self->{information}->{$tag} );
-	push( @{ $self->{information}->{$tag} }, $info ) if ( defined $info );
+	if ( defined $info ) {
+		push( @{ $self->{information}->{$tag} }, $info );
+	}
 	return $self->{information}->{$tag};
 }
 

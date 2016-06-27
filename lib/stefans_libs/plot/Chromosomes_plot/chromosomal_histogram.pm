@@ -139,8 +139,8 @@ sub plot_axies {
 
 sub get_as_bedGraph {
 	my ( $self, $data_table ) = @_;
-	unless ( ref($data_table) eq "stefans_libs_file_readers_bedGraph_file" ) {
-		$data_table = stefans_libs_file_readers_bedGraph_file->new();
+	unless ( ref($data_table) eq "stefans_libs::file_readers::bedGraph_file" ) {
+		$data_table = stefans_libs::file_readers::bedGraph_file->new();
 		foreach (qw(position value)) {
 			$data_table->Add_2_Header($_);
 		}

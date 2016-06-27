@@ -1,4 +1,4 @@
-package stefans_libs_file_readers_bedGraph_file;
+package stefans_libs::file_readers::bedGraph_file;
 
 #  Copyright (C) 2012-10-28 Stefan Lang
 
@@ -75,7 +75,7 @@ sub new {
 	};
 
 	bless $self, $class
-	  if ( $class eq "stefans_libs_file_readers_bedGraph_file" );
+	  if ( $class eq "stefans_libs::file_readers::bedGraph_file" );
 	$self->define_subset( 'UCSC_key', ['chromosome', 'start', 'end']);
 	return $self;
 
