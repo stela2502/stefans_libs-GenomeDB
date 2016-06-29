@@ -785,13 +785,13 @@ sub get_as_bed_file {
 		$gbFeature = $self->str_to_gbFeature( $a[4] );
 		if ( $dataset->{'first_exon'} ) {
 			@r = $gbFeature->{'region'}->{'regions'};
-			if ( $gbFeature->isComplement() ) {
+			if ( $gbFeature->IsComplement() ) {
 				$r[0] = $r[$#r];
 			}
-			push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome(  $a[0], $r[0]->{start}, $r[0]->{end} ), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} ) ] );			
+			push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome(  $a[0], @{$r[0]}[0]->{start}, @{$r[0]}[0]->{end} ), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} ) ] );			
 		}
 		if ( $dataset->{'promoter'}) {
-			if ( $gbFeature->isComplement() ) {
+			if ( $gbFeature->IsComplement() ) {
 				push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome(  $a[0], $a[2], $a[2]+3000 ), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} )  ] );			
 			}
 			else {

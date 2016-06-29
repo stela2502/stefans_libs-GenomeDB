@@ -27,6 +27,7 @@ use Getopt::Long;
 use strict;
 use warnings;
 use stefans_libs::database::genomeDB;
+use stefans_libs::file_readers::bed_file;
 
 use FindBin;
 my $plugin_path = "$FindBin::Bin";
@@ -52,6 +53,9 @@ my $error = '';
 
 unless ( defined $region[0] ) {
 	$error .= "the cmd line switch -region is undefined!\n";
+}elsif ( -f $region[0] ) {
+	my $tmp = stefans_libs_file_readers_bed_file ->new({'filename' => $region[0]} );
+	@region = @{$tmp->CHR_key()};
 }
 unless ( defined $outfile ) {
 	$error .= "the cmd line switch -outfile is undefined!\n";
@@ -80,11 +84,11 @@ sub helpString {
  $errorMessage
  command line switches for get_chromosomal_sequence.pl
 
-   -region       :<please add some info!> you can specify more entries to that
-   -outfile       :<please add some info!>
-   -organism       :<please add some info!>
-   -version       :<please add some info!>
-   -masked       :<please add some info!>
+   -region       :the regions as 'chr:start-end' strings or one bed file
+   -outfile      :the outfile containing the fasta database
+   -organism     :the organism to get the sequences from
+   -version      :the version of the genome
+   -masked       :use the masked data
 
    -help           :print this help
    -debug          :verbose output
@@ -131,7 +135,7 @@ my ( $chr, $chr_start, $chr_end, @data, $str );
 $gbFile_id = '';
 foreach my $region (@region) {
 	$region =~ s/,//;
-	( $chr, $chr_start, $chr_end ) = split( /[:-]/, $region );
+	( $chr, $chr_start, $chr_end ) = split( /[\s:-]/, $region );
 	@data = $chr_calculator->Chromosome_2_gbFile( $chr, $chr_start, $chr_end );
 	$str = '';
 	foreach my $array (@data) {

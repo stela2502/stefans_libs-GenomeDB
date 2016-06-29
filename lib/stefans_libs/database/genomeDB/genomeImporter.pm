@@ -263,9 +263,9 @@ sub Add_One_GB_file {
 }
 
 sub download_refseq_genome_for_organism {
-	my ( $self, $organism, $version, $even_spacing ) = @_;
+	my ( $self, $organism, $version, $even_spacing, $file_match ) = @_;
 	my ( @directory, @CHR_dir, $return, $already_read, @wget );
-
+	$file_match ||= 'gbk.gz';
 	$self->{databaseDir} .= "/$organism";
 	print "Database Dir = $self->{databaseDir} \n" if ( $self->{debug} );
 	if ( -d "$self->{databaseDir}" ) {
@@ -279,7 +279,7 @@ sub download_refseq_genome_for_organism {
 			  if ( $file eq "seq_contig.md.gz" );
 			$return->{readme} = "$self->{databaseDir}/$file"
 			  if ( $file eq "README_CURRENT_BUILD" );
-			if ( $file =~ m/gbk.gz/ ) {
+			if ( $file =~ m/$file_match/ ) {
 				push( @{ $return->{gbLibs} }, "$self->{databaseDir}/$file" );
 				$already_read->{"$self->{databaseDir}/$file"} = 1;
 			}
@@ -287,14 +287,14 @@ sub download_refseq_genome_for_organism {
 
 	}
 	else {
-		mkdir("$self->{databaseDir}");
+		system("mkdir -p $self->{databaseDir}") unless ( -d $self->{databaseDir});
 	}
 	if ( $self->{'noDownload'} ) {
 		Carp::confess(
 "Sorry - I got the noDownload option and did not find the gbFiles in the folder '$self->{databaseDir}'.\n"
 			  . "Please make sure I find all important files there and re-run.\n"
 		) unless ( scalar( @{ $return->{gbLibs} } ) > 0 );
-		$self->Extract_gbFiles($return);
+		$self->Extract_gbFiles($return) if ($file_match eq 'gbk.gz' );
 		return $return;
 	}
 	my $ftp = Net::FTP->new( 'ftp.ncbi.nlm.nih.gov', Debug => 1 )
@@ -305,18 +305,10 @@ sub download_refseq_genome_for_organism {
 
 	$ftp->cwd("/genomes/$organism/ARCHIVE/$version/")
 	  or die "Cannot change working directory ", $ftp->message;
-	unless (
-		$ftp->get(
-			"README_CURRENT_BUILD", "$self->{databaseDir}/README_CURRENT_BUILD"
-		)
-	  )
-	{
+	system( "wget ftp.ncbi.nlm.nih.gov/genomes/$organism/ARCHIVE/$version/README_CURRENT_BUILD -O $self->{databaseDir}/README_CURRENT_BUILD" );
+	unless ( -f "$self->{databaseDir}/README_CURRENT_BUILD" ){
 		## OK M_musculus uses a 'README_CURRENT_RELEASE' file instead
-		$ftp->get( "README_CURRENT_RELEASE",
-			"$self->{databaseDir}/README_CURRENT_RELEASE" )
-		  or die
-		  "cannot access the README_CURRENT_BUILD or README_CURRENT_RELEASE\n",
-		  $ftp->message();
+		system( "wget ftp.ncbi.nlm.nih.gov/genomes/$organism/ARCHIVE/$version/README_CURRENT_RELEASE -O $self->{databaseDir}/README_CURRENT_RELEASE" );
 		$return->{readme} = "$self->{databaseDir}/README_CURRENT_RELEASE";
 	}
 	else {
@@ -345,10 +337,15 @@ sub download_refseq_genome_for_organism {
 			@CHR_dir = $ftp->ls();
 			foreach my $file (@CHR_dir) {
 				if ( $file =~ m/ref/ ) {
-					if ( $file =~ m/gbk/ ) {
-						my $cmd = "wget  ftp.ncbi.nlm.nih.gov/genomes/$organism/ARCHIVE/$version/$entry/$file -O $self->{databaseDir}/$file\n";
-						print  $cmd ;
-						push (@wget, $cmd );
+					if ( $file =~ m/$file_match/ ) {
+						unless ( -f  "$self->{databaseDir}/$file" ) {
+							die "Does the file $self->{databaseDir}/$file really not exists?\n";
+							my $cmd = "wget  ftp.ncbi.nlm.nih.gov/genomes/$organism/ARCHIVE/$version/$entry/$file -O $self->{databaseDir}/$file\n";
+							print  $cmd ;
+							system( $cmd );
+							push (@wget, $cmd );
+						}
+						push ( @{ $return->{'gbLibs'} }, "$self->{databaseDir}/$file"  ) if ( -f "$self->{databaseDir}/$file" );
 					}
 				}
 			}
@@ -356,10 +353,6 @@ sub download_refseq_genome_for_organism {
 		}
 	}
 	$ftp->quit;
-	die "Sorry I was unable to download the necessary files!\n"
-	  . "Could you pleaste download the files to the folder $self->{databaseDir}/:"
-	  . join( "\n", @wget ) . "\n"
-	  if ( scalar(@wget) > 0 );
 	## now I started to use bacteria genomes too. They can not easily be imported using this tool and I only need one of them for test purposes.
 	## hence I implement that quick and dirty - and I case a waring!
 	if ( scalar( @{ $return->{'gbLibs'} } ) == 0 ) {

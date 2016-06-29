@@ -39,7 +39,7 @@ my ( $help, $debug, $database, $organism_name, $outdir,$even_spacing, $releaseDa
 Getopt::Long::GetOptions(
 	 "-organism_name=s"    => \$organism_name,
 	 "-outdir=s"    => \$outdir,
-	 
+ 
 	 "-releaseDate=s" => \$releaseDate,
 	 "-version=s" => \$version,
 	 "-referenceTag=s" => \$referenceTag,

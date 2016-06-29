@@ -354,7 +354,7 @@ sub add_info_to_name {
 }
 
 sub get_as_fastaDB{
-	my ( $self, $genomeInterface, $bp_in_center ) =@_;
+	my ( $self, $genomeInterface, $bp_in_center, $no_N_regions ) =@_;
 	my $chr_calc = $genomeInterface -> get_chr_calculator();
 	my $fastaDB = stefans_libs::fastaDB->new();
 	my ($array, $gbFiles, $seq, $chr, $start, $end);
@@ -372,7 +372,11 @@ sub get_as_fastaDB{
 			$seq .= $gbFiles->{@$_[0]}->Get_SubSeq( @$_[1,2] );
 		}
 		$array = @{@{$self->{'data'}}[$i]}[0].":".@{@{$self->{'data'}}[$i]}[1]."-".@{@{$self->{'data'}}[$i]}[2];
-		$fastaDB -> addEntry ( $array, $seq );
+		if ( $no_N_regions ) {
+			$fastaDB -> addEntry ( $array, $seq ) unless ( $seq =~ m/^N*$/ )
+		}else {
+			$fastaDB -> addEntry ( $array, $seq ) unless ( $seq eq '' );
+		}
 	}
 	$gbFiles = undef;
 	return $fastaDB;

@@ -38,7 +38,7 @@ my $VERSION = 'v1.0';
 
 my $includes = "-I " . join( " -I ", @INC );
 
-my ( $help, $debug, $database, $bed_file, $bp_in_center, $masked, $organism, $version, $outfile);
+my ( $help, $debug, $database, $bed_file, $bp_in_center, $masked, $organism, $version, $outfile, $no_N_regions );
 
 Getopt::Long::GetOptions(
 	 "-bed_file=s"    => \$bed_file,
@@ -47,6 +47,7 @@ Getopt::Long::GetOptions(
 	 "-outfile=s"    => \$outfile,
 	 "-masked"       => \$masked,
 	 "-bp_in_center=s" => \$bp_in_center,
+	 "-no_N_regions" => \$no_N_regions,
 
 	 "-help"             => \$help,
 	 "-debug"            => \$debug
@@ -95,7 +96,8 @@ sub helpString {
    -version    :the genome version (can be lest empty)
    -outfile    :the fasta db file
    
-   -bp_in_center  :select only bo around the center of the bed region
+   -bp_in_center  :select only <bin_in_center> bp around the center of the bed region
+   -no_N_regions  :suppress the output of N only regions
    
    -masked     :use repeat masker data to convert repeat sequences into N seq
    
@@ -116,6 +118,7 @@ $task_description .= " -version $version" if (defined $version);
 $task_description .= " -outfile $outfile" if (defined $outfile);
 $task_description .= " -masked" if ( $masked );
 $task_description .= " -bp_in_center $bp_in_center" if ( $bp_in_center);
+$task_description .= " -no_N_regions" if ( $no_N_regions );
 
 open ( LOG , ">$outfile.log") or die $!;
 print LOG $task_description."\n";
@@ -130,14 +133,14 @@ my $interface =
 	$version );
 $interface = $interface->get_rooted_to('gbFilesTable');
 $interface -> Connect_2_REPEAT_ROI_table() if ( $masked );
-$masked |= 0;
+$masked ||= 0;
 #print "Do I have to mask the genome? $masked\n";
 
 $bed = stefans_libs_file_readers_bed_file->new();
 $bed -> read_file ( $bed_file );
 
 ## so now iónle get the info from the DB - fingers crossed!
-my $fastaDB = $bed -> get_as_fastaDB ( $interface, $bp_in_center );
+my $fastaDB = $bed -> get_as_fastaDB ( $interface, $bp_in_center, $no_N_regions );
 
 $fastaDB->WriteAsFastaDB($outfile);
 

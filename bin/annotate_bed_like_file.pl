@@ -30,6 +30,8 @@
        -max_distance  :all features in an area of <max_distance> bp are considered
        -feature_tag   :which features to report (none == all!)
        -feature_name  :some specific feature name? optional
+       -promoter      :match to the putative promoter of a feature (0 to -3kb)
+       -first_exon    :match to the first exon of each feature
 
 
        -help           :print this help
@@ -60,7 +62,7 @@ my $VERSION = 'v1.0';
 my (
 	$help,         $debug,       $database, $bed_file,
 	$with_header,  $outfile,     $organism, $version,
-	$max_distance, $feature_tag, $feature_name
+	$max_distance, $feature_tag, $promoter,$first_exon, $feature_name
 );
 
 Getopt::Long::GetOptions(
@@ -72,6 +74,8 @@ Getopt::Long::GetOptions(
 	"-max_distance=s" => \$max_distance,
 	"-feature_tag=s"  => \$feature_tag,
 	"-feature_name=s" => \$feature_name,
+	"-promoter" => \$promoter,
+	"-first_exon" => \$first_exon,
 
 	"-help"  => \$help,
 	"-debug" => \$debug
@@ -136,6 +140,9 @@ $task_description .= " -max_distance '$max_distance'"
 $task_description .= " -feature_tag '$feature_tag'" if ( defined $feature_tag );
 $task_description .= " -feature_name '$feature_name'"
   if ( defined $feature_name );
+$task_description .= " -promoter" if ($promoter);
+$task_description .= " -first_exon" if ($first_exon);
+  
 
 open( LOG, ">$outfile.log" ) or die $!;
 print LOG $task_description . "\n";
@@ -148,12 +155,13 @@ my $interface =
   $genomeDB->GetDatabaseInterface_for_Organism_and_Version( $organism,
 	$version );
 
-my $genome_bed = $interface->get_as_bed_file(
-	{ 
-		'tag' => $feature_tag,
-		'name' => $feature_name,
-	}
-);
+my $run_options = {
+	'tag' => $feature_tag,
+	'name' => $feature_name,
+};
+$run_options->{'promoter'} = 1 if ( $promoter );
+$run_options->{'first_exon'} = 1 if ( $first_exon );
+my $genome_bed = $interface->get_as_bed_file($run_options);
 
 my $source_bed;
 if ( $with_header ) {

@@ -17,6 +17,8 @@ if ( -d $outpath ) {
 	system("rm -Rf $outpath");
 }
 
+$bed_file = $plugin_path."/data/test_file.bed";
+$organism = "";
 
 my $cmd =
     "perl -I $plugin_path/../lib  $exec.pl "
