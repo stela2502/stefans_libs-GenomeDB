@@ -32,6 +32,7 @@
        -feature_name  :some specific feature name? optional
        -promoter      :match to the putative promoter of a feature (0 to -3kb)
        -first_exon    :match to the first exon of each feature
+       -add_sequence  :add the underlying sequence (repeat matched)
 
 
        -help           :print this help
@@ -62,7 +63,7 @@ my $VERSION = 'v1.0';
 my (
 	$help,         $debug,       $database, $bed_file,
 	$with_header,  $outfile,     $organism, $version,
-	$max_distance, $feature_tag, $promoter,$first_exon, $feature_name
+	$max_distance, $feature_tag, $promoter,$first_exon, $feature_name, $add_sequence
 );
 
 Getopt::Long::GetOptions(
@@ -76,6 +77,7 @@ Getopt::Long::GetOptions(
 	"-feature_name=s" => \$feature_name,
 	"-promoter" => \$promoter,
 	"-first_exon" => \$first_exon,
+	"-add_sequence" => \$add_sequence,
 
 	"-help"  => \$help,
 	"-debug" => \$debug
@@ -142,8 +144,12 @@ $task_description .= " -feature_name '$feature_name'"
   if ( defined $feature_name );
 $task_description .= " -promoter" if ($promoter);
 $task_description .= " -first_exon" if ($first_exon);
-  
+$task_description .= " -add_sequence "if ($add_sequence );
 
+my $fm = root->filemap( $outfile);
+unless ( -d $fm->{'path'} ) {
+	mkdir ( $fm->{'path'} );
+}
 open( LOG, ">$outfile.log" ) or die $!;
 print LOG $task_description . "\n";
 close(LOG);
@@ -161,7 +167,14 @@ my $run_options = {
 };
 $run_options->{'promoter'} = 1 if ( $promoter );
 $run_options->{'first_exon'} = 1 if ( $first_exon );
-my $genome_bed = $interface->get_as_bed_file($run_options);
+my $genome_bed;
+if ( -f $outfile.".genome.bed" ) {
+	$genome_bed = stefans_libs_file_readers_bed_file->new();
+	$genome_bed -> read_file ( $outfile.".genome.bed"  );
+}else {
+	$genome_bed = $interface->get_as_bed_file($run_options);
+	$genome_bed -> write_file($outfile.".genome.bed");
+}
 
 my $source_bed;
 if ( $with_header ) {
@@ -206,6 +219,7 @@ sub get_from_genome {
 print join("\t",@{$source_bed->{'header'}})."\n".$source_bed ->AsTestString();
 
 for ( my $i = 0; $i < $source_bed->Rows(); $i ++ ) {
+	next unless ( ref(@{@{$overlap->{'data'}}[$i]}[$genome_col]) eq "ARRAY" );
 	if (@{@{@{$overlap->{'data'}}[$i]}[$genome_col]} > 0 ) {
 		@genomeIDs = @{@{@{$overlap->{'data'}}[$i]}[$genome_col]};
 		&add_to_col( $i, $start_col, &get_from_genome( 1, @genomeIDs ) );
@@ -223,6 +237,28 @@ for ( my $i = 0; $i < $source_bed->Rows(); $i ++ ) {
 }
 
 $source_bed = $source_bed -> drop_column ('genome_ids');
+
+if ( $add_sequence ) {
+	my $sequence_col = $source_bed->Add_2_Header('DNA sequence (masked)');
+	my ($gbFile_id, $chr, $chr_start, $chr_end, @data, $str, $gbFile);
+	my $chr_calculator = $interface->get_chr_calculator();
+	for ( my $i = 0; $i < $source_bed->Rows(); $i ++ ) {
+		( $chr, $chr_start, $chr_end ) = @{@{$source_bed->{'data'}}[$i]}[0,1,2];
+		@data = $chr_calculator->Chromosome_2_gbFile( $chr, $chr_start, $chr_end );
+		$str = '';
+		foreach my $array (@data) {
+			unless ( @$array[0] == $gbFile_id  ){
+				$gbFile =
+				  $interface->get_masked_gbFile_for_gbFile_id( @$array[0] );
+				print "process gbFile ". $gbFile->Version(). " (@$array[0])\n";
+				$gbFile_id = @$array[0];
+			}
+			$str .= $gbFile->Get_SubSeq( @$array[1], @$array[2]);
+		}
+		@{@{$source_bed->{'data'}}[$i]}[$sequence_col] = $str;
+	}
+}
+
 print $source_bed ->AsTestString();
 
 if ( $with_header ) {

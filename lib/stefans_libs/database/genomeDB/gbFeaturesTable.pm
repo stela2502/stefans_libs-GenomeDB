@@ -60,14 +60,14 @@ sub new {
 	my ($self);
 
 	$self = {
-		debug                                    => $debug,
-		dbh                                      => $dbh,
+		debug => $debug,
+		dbh   => $dbh,
 		'select_gbString_for_gbID_tag_start_end' =>
 'select gbString from database where gbFile_id = ? && tag = ? && start >= ? && end <= ?',
 		selectID_NTS =>
 "select id from database where  tag = ? && name = ? && start = ? && end = ?",
 		selectIDs_by_gbFile => "select id from database where gbFile_id = ?;",
-		select_gbStrings    =>
+		select_gbStrings =>
 "select gbString from database where id IN ( theSearchIDs ) order by start",
 		select_all_for_feature_tag_and_name =>
 		  "select gbFile_id, gbString from database where tag = ? && name = ?",
@@ -90,26 +90,38 @@ sub expected_dbh_type {
 	#return "database_name";
 }
 
-sub get_promoter_regions_4_genes{
+sub get_promoter_regions_4_genes {
 	my ( $self, $genes, $start, $end ) = @_;
-	$start = 2000 unless ( defined $start);
-	$end = 2000 unless ( defined $end );
-	my $data_table = $self-> get_data_table_4_search( {
-	'search_columns' => ['gbFile_id', 'gbString'],
-	'where' => [ ['name', '=', 'my_value'], ['tag', '=', 'my_value'] ],},  $genes , 'gene' );
+	$start = 2000 unless ( defined $start );
+	$end   = 2000 unless ( defined $end );
+	my $data_table = $self->get_data_table_4_search(
+		{
+			'search_columns' => [ 'gbFile_id', 'gbString' ],
+			'where' =>
+			  [ [ 'name', '=', 'my_value' ], [ 'tag', '=', 'my_value' ] ],
+		},
+		$genes, 'gene'
+	);
 	## OK now I have all mRNA gbStrings, the gbFile_id and that should be enough to create a bed file!
 #	print "I got the data table:\n".$data_table->AsString(). " using the search '$self->{'complex_search'}'\n";
 	my $bedfile = stefans_libs_file_readers_bed_file->new();
-	my $gbFeature = gbFeature->new('nix', '1..2' );
-	my ($startP, $endP, @return, $hash );
-	for (my $i = 0; $i < $data_table->Lines; $i ++ ) {
-		$gbFeature -> parseFromString ( @{@{$data_table->{'data'}}[$i]}[1] );
-		($startP, $endP) = $gbFeature -> getPromoterRegion( $start, $end );
+	my $gbFeature = gbFeature->new( 'nix', '1..2' );
+	my ( $startP, $endP, @return, $hash );
+	for ( my $i = 0 ; $i < $data_table->Lines ; $i++ ) {
+		$gbFeature->parseFromString( @{ @{ $data_table->{'data'} }[$i] }[1] );
+		( $startP, $endP ) = $gbFeature->getPromoterRegion( $start, $end );
 		##Now I need to translate the gbFile_ID start end into a chromosomal position
-		@return = $self-> get_chr_calculator -> gbFile_2_chromosome (@{@{$data_table->{'data'}}[$i]}[0], $startP, $endP );
-		$hash = {'chromosome' => $return[0], 'start' => $return[1], 'end' => $return[2], 'name' => $gbFeature->Name() };
-		$hash -> { 'name' } .= " (rev)" if ( $gbFeature->IsComplement() );
-		$bedfile ->AddDataset( $hash );
+		@return = $self->get_chr_calculator->gbFile_2_chromosome(
+			@{ @{ $data_table->{'data'} }[$i] }[0],
+			$startP, $endP );
+		$hash = {
+			'chromosome' => $return[0],
+			'start'      => $return[1],
+			'end'        => $return[2],
+			'name'       => $gbFeature->Name()
+		};
+		$hash->{'name'} .= " (rev)" if ( $gbFeature->IsComplement() );
+		$bedfile->AddDataset($hash);
 	}
 	return $bedfile;
 }
@@ -197,8 +209,7 @@ sub init_tableStructure {
 
 	$self->{'Group_to_MD5_hash'} = ['gbString'];
 
-	$self->{'UNIQUE_KEY'} =
-	  ['md5_sum']
+	$self->{'UNIQUE_KEY'} = ['md5_sum']
 	  ; # add here the values you would take to select a single value from the databse
 	$self->{'_tableName'} = $hash->{'table_name'}
 	  if ( defined $hash->{'table_name'} )
@@ -265,7 +276,6 @@ sub DO_ADDITIONAL_DATASET_CHECKS {
 	return 0 if ( $self->{'error'} =~ m/\w/ );
 	return 1;
 }
-
 
 sub get_gbFile_for_acc {
 	my ( $self, $gbFile_acc ) = @_;
@@ -346,10 +356,10 @@ sub makeMaster {
 			$_->{'data_hanlder'} = 'gbFileTable';
 		}
 	}
-	$self->{'linkage_info'} = undef;
-	$gbFilesTable_obj->{'linkage_info'} = undef;
+	$self->{'linkage_info'}                  = undef;
+	$gbFilesTable_obj->{'linkage_info'}      = undef;
 	$self->{'data_handler'}->{'gbFileTable'} = $gbFilesTable_obj;
-	$self->{'genomeID'} = $gbFilesTable_obj->{'genomeID'};
+	$self->{'genomeID'}                      = $gbFilesTable_obj->{'genomeID'};
 	return $self;
 }
 
@@ -379,8 +389,7 @@ sub get_gbFile_for_gbFile_id {
 	Carp::confess(
 		ref($self)
 		  . ":get_gbFile_for_gbFile_id -> we will die here as the gbFileID $gbFile_id is not defined in the databse!\n"
-	  )
-	  unless ( defined $gbFile );
+	) unless ( defined $gbFile );
 
 	$gbFile->Features( $self->get_gbFeatures( { 'gbFile_id' => $gbFile_id } ) );
 	return $gbFile;
@@ -391,8 +400,8 @@ sub get_genes_in_chromosomal_region_as_bedFile {
 
 	my ( $data, $data_table, $chr_chr );
 	my $bed_file = stefans_libs_file_readers_bed_file->new();
-	$chr_chr = $chr; 
-	$chr_chr = "chr$chr" unless ( $chr =~ m/chr/);
+	$chr_chr = $chr;
+	$chr_chr = "chr$chr" unless ( $chr =~ m/chr/ );
 	foreach (
 		$self->get_chr_calculator()->Chromosome_2_gbFile( $chr, $start, $end ) )
 	{
@@ -415,14 +424,24 @@ sub get_genes_in_chromosomal_region_as_bedFile {
 			@$_[0],
 			'gene'
 		);
-		print "I got ".$data_table->Lines()." genes for the gbFile id @$_[0]\n";
-		print "And I have to add ".($self->get_chr_calculator()->{'gbFile_id_2_chr_start'}->{ @$_[0] } - 1)."bp to each ogf them.\n";
-		foreach my $array ( @{$data_table->{'data'}} ){
-			@$array[0] += $self->get_chr_calculator()->{'gbFile_id_2_chr_start'}->{ @$_[0] } - 1 ;
-			@$array[1] += $self->get_chr_calculator()->{'gbFile_id_2_chr_start'}->{ @$_[0] } - 1 ;
-			unshift ( @$array, $chr_chr );
+		print "I got "
+		  . $data_table->Lines()
+		  . " genes for the gbFile id @$_[0]\n";
+		print "And I have to add "
+		  . (
+			$self->get_chr_calculator()->{'gbFile_id_2_chr_start'}->{ @$_[0] } -
+			  1 )
+		  . "bp to each ogf them.\n";
+		foreach my $array ( @{ $data_table->{'data'} } ) {
+			@$array[0] +=
+			  $self->get_chr_calculator()->{'gbFile_id_2_chr_start'}
+			  ->{ @$_[0] } - 1;
+			@$array[1] +=
+			  $self->get_chr_calculator()->{'gbFile_id_2_chr_start'}
+			  ->{ @$_[0] } - 1;
+			unshift( @$array, $chr_chr );
 		}
-		push ( @{$bed_file->{'data'}}, @{$data_table->{'data'}});
+		push( @{ $bed_file->{'data'} }, @{ $data_table->{'data'} } );
 	}
 	return $bed_file;
 }
@@ -430,10 +449,18 @@ sub get_genes_in_chromosomal_region_as_bedFile {
 sub get_chromosomal_region {
 	my ( $self, $chr, $start, $end ) = @_;
 	my $gbFile = gbFile->new();
-	$gbFile->{'header'} =  gbHeader->new( [( "LOCUS       $chr:$start..$end       ".($end - $start + 1)." bp  DNA    linear",
-"DEFINITION  the chromosomal region $chr:$start..$end",
-"ACCESSION   $chr:$start..$end",
-"FEATURES             Location/Qualifiers" ) ] );
+	$gbFile->{'header'} = gbHeader->new(
+		[
+			(
+				"LOCUS       $chr:$start..$end       "
+				  . ( $end - $start + 1 )
+				  . " bp  DNA    linear",
+				"DEFINITION  the chromosomal region $chr:$start..$end",
+				"ACCESSION   $chr:$start..$end",
+				"FEATURES             Location/Qualifiers"
+			)
+		]
+	);
 	$gbFile->{'SEQ_offset'} = -$start + 1;
 	my ( $seq, $last_end, $data, $temp_gbFile );
 	foreach (
@@ -460,9 +487,10 @@ sub get_chromosomal_region {
 		  . scalar( @{ $gbFile->Features( $temp_gbFile->Features() ) } )
 		  . " Features\n";
 		$last_end = @$data[2];
+
 		#print "I have set last_end to $last_end\n";
 	}
-	$gbFile->Sequence($seq); 
+	$gbFile->Sequence($seq);
 	$gbFile->drop_features_that_do_not_match_to( $start, $end );
 	return $gbFile;
 }
@@ -473,8 +501,7 @@ sub get_masked_gbFile_for_gbFile_id {
 	  $self->{'data_handler'}->{'gbFileTable'}->Connect_2_REPEAT_ROI_table();
 	my $gbFile = $self->get_gbFile_for_gbFile_id($gbFile_id);
 	## now I need the Repeat information!
-	my $repeats =
-	  $ROI_table->get_ROI_as_gbFeature(
+	my $repeats = $ROI_table->get_ROI_as_gbFeature(
 		{ 'tag' => 'repeat', 'gbFile_id' => $gbFile_id } );
 	## and now I need to replace the sequences and store the replaced seq in the feature
 	my ( $str, $N );
@@ -547,7 +574,6 @@ sub getNext_gbFile {
 	return $gbFile;
 }
 
-
 sub _get_genomeSearchResult_object {
 	die "not implemented!\n";
 }
@@ -561,16 +587,14 @@ sub Connect_2_result_ROI_table {
 sub get_features_in_chr_region_by_type {
 	my ( $self, $dataset ) = @_;
 	$self->{error} = $self->{warning} = '';
-	$self->{error} .=
-	  ref($self)
+	$self->{error} .= ref($self)
 	  . ":get_features_in_chr_region_by_type -> we need a table base name ('
 						  baseName ')\n"
 	  unless ( defined defined $self->TableName( $dataset->{'baseName'} ) );
 	my $where        = [];
 	my $search_array = [];
 	unless ( defined defined $dataset->{'tag'} ) {
-		$self->{warning} .=
-		  ref($self)
+		$self->{warning} .= ref($self)
 		  . ":get_features_in_chr_region_by_type -> we set search for 'gene' as you have not told us anything else ('tag')\n";
 		$dataset->{'tag'} = 'gene';
 	}
@@ -582,7 +606,7 @@ sub get_features_in_chr_region_by_type {
 	}
 	if ( defined $dataset->{'chr'} ) {
 		my $helper = $self->get_chr_calculator();
-		my @data   =
+		my @data =
 		  $helper->Chromosome_2_gbFile( $dataset->{'chr'}, $dataset->{'start'},
 			$dataset->{'end'} );
 		my @gbFile_IDs;
@@ -614,18 +638,15 @@ sub delete_gbFeatures_by_tag_name {
 	## we need the tag, the name and the gbFile_id
 	$self->{error} = "";
 	unless ( defined $dataset->{'tag'} ) {
-		$self->{error} .=
-		  ref($self)
+		$self->{error} .= ref($self)
 		  . ":delete_gbFeatures_by_tag_name -> we do not know what to delete!(tag)\n";
 	}
 	unless ( defined $dataset->{'name'} ) {
-		$self->{error} .=
-		  ref($self)
+		$self->{error} .= ref($self)
 		  . ":delete_gbFeatures_by_tag_name -> we do not know what to delete!(name)\n";
 	}
 	unless ( defined $dataset->{'gbFile_id'} ) {
-		$self->{error} .=
-		  ref($self)
+		$self->{error} .= ref($self)
 		  . ":delete_gbFeatures_by_tag_name -> we do not know what to delete!(gbFile_id)\n";
 	}
 	return 0 if ( $self->{error} =~ m/\w/ );
@@ -690,6 +711,7 @@ sub post_INSERT_INTO_DOWNSTREAM_TABLES {
 				  . "::post_INSERT_INTO_DOWNSTREAM_TABLES -> db_xref data '@$info[0]' could not be parsed!";
 				next;
 			}
+
 #			print
 #"we try to insert into db_xref_table gbFile_id = $id; db_name = $info[0]; db_id = $info[1]\n";
 			$self->{'data_handler'}->{'db_xref_table'}->AddDataset(
@@ -772,49 +794,116 @@ sub get_as_bed_file {
 		@$search[$helper] = $dataset->{$_};
 		@$where[ $helper++ ] = [ $_, '=', 'my_value' ];
 	}
-	$data_table = $self->get_data_table_4_search( {
-	'search_columns' => [ map{ "gbFeaturesTable.$_"} 'gbFile_id', 'start', 'end', 'name', 'gbString' ],
-	'where' => $where,
-}, @$search);
-	#Carp::confess ($data_table->AsTestString() );
-	my $calc = $self->get_chr_calculator(); # chr start end name
+	$data_table = $self->get_data_table_4_search(
+		{
+			'search_columns' => [
+				map { "gbFeaturesTable.$_" } 'gbFile_id',
+				'start', 'end', 'name', 'gbString'
+			],
+			'where' => $where,
+		},
+		@$search
+	);
+	my $calc = $self->get_chr_calculator();    # chr start end name
 	## I will just translate the features from gbFile_id to chromosome name
-	my ($gbFeature,@a, @r);
-	for( my $i = 0; $i< $data_table->Lines(); $i ++ ) {
-		@a = @{@{$data_table->{'data'}}[$i]};
+	my ( $gbFeature, @a, @r );
+	for ( my $i = 0 ; $i < $data_table->Lines() ; $i++ ) {
+		@a         = @{ @{ $data_table->{'data'} }[$i] };
 		$gbFeature = $self->str_to_gbFeature( $a[4] );
+		if ( $dataset->{'all_exons'} ) {
+			
+			foreach ( @{ $gbFeature->{'region'}->{'regions'} } ) {
+				push(
+					@{ $bed_file->{'data'} },
+					[
+						$calc->gbFile_2_chromosome(
+							$a[0],
+							$_->{start},
+							$_->{end}
+						),
+						$a[3],
+						join( ";",
+							@{ $gbFeature->INFORMATION('db_xref') },
+							@{ $gbFeature->INFORMATION('transcript_id') } )
+					]
+				);
+			}
+		}
 		if ( $dataset->{'first_exon'} ) {
 			@r = $gbFeature->{'region'}->{'regions'};
 			if ( $gbFeature->IsComplement() ) {
 				$r[0] = $r[$#r];
 			}
-			push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome(  $a[0], @{$r[0]}[0]->{start}, @{$r[0]}[0]->{end} ), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} ) ] );			
+			push(
+				@{ $bed_file->{'data'} },
+				[
+					$calc->gbFile_2_chromosome(
+						$a[0],
+						@{ $r[0] }[0]->{start},
+						@{ $r[0] }[0]->{end}
+					),
+					$a[3],
+					join( ";",
+						@{ $gbFeature->INFORMATION('db_xref') },
+						@{ $gbFeature->INFORMATION('transcript_id') } )
+				]
+			);
 		}
-		if ( $dataset->{'promoter'}) {
+		if ( $dataset->{'promoter'} ) {
 			if ( $gbFeature->IsComplement() ) {
-				push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome(  $a[0], $a[2], $a[2]+3000 ), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} )  ] );			
+				push(
+					@{ $bed_file->{'data'} },
+					[
+						$calc->gbFile_2_chromosome(
+							$a[0], $a[2], $a[2] + 3000
+						),
+						$a[3],
+						join( ";",
+							@{ $gbFeature->INFORMATION('db_xref') },
+							@{ $gbFeature->INFORMATION('transcript_id') } )
+					]
+				);
 			}
 			else {
-				push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome(  $a[0], $a[1]-3000, $a[1] ), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} )  ] );
+				push(
+					@{ $bed_file->{'data'} },
+					[
+						$calc->gbFile_2_chromosome(
+							$a[0], $a[1] - 3000, $a[1]
+						),
+						$a[3],
+						join( ";",
+							@{ $gbFeature->INFORMATION('db_xref') },
+							@{ $gbFeature->INFORMATION('transcript_id') } )
+					]
+				);
 			}
 		}
 		else {
-			push ( @{$bed_file->{'data'}}, [ $calc->gbFile_2_chromosome( @a[0..2]), $a[3], join(";", @{$gbFeature->INFORMATION('db_xref')}, @{$gbFeature->INFORMATION('transcript_id')} )  ] );
+			push(
+				@{ $bed_file->{'data'} },
+				[
+					$calc->gbFile_2_chromosome( @a[ 0 .. 2 ] ),
+					$a[3],
+					join( ";",
+						@{ $gbFeature->INFORMATION('db_xref') },
+						@{ $gbFeature->INFORMATION('transcript_id') } )
+				]
+			);
 		}
 	}
-	
+
 	return $bed_file;
 }
 
 sub str_to_gbFeature {
-	my ( $self, $str) =@_;
-	my $t = gbFeature->new('t', '1..2');
-	$t->parseFromString( $str );
+	my ( $self, $str ) = @_;
+	my $t = gbFeature->new( 't', '1..2' );
+	$t->parseFromString($str);
 	return $t;
 }
 
-
-sub __return_bed_array{
+sub __return_bed_array {
 	my ( $self, $gbFeature, $where, $start, $end ) = @_;
 	if ( $gbFeature->IsComplement() ) {
 		return [ $where - $start, $where + $end ];
@@ -834,9 +923,12 @@ sub __process_gbFeatures_4_bed_file {
 			@{ $bed_file->{'data'} }[ $bed_file->Lines() ] = [
 				$self->get_chr_calculator()->gbFile_2_chromosome(
 					@{ @{ $data_table->{'data'} }[$i] }[0],
-					$self->__return_bed_array($search->ExprEnd(),  $e_start, $e_end ),
-					), $search->Name() . "_mRNA_stop"
-				 ];
+					$self->__return_bed_array(
+						$search->ExprEnd(), $e_start, $e_end
+					),
+				),
+				$search->Name() . "_mRNA_stop"
+			];
 		}
 	}
 	elsif ( defined $s_start ) {
@@ -938,8 +1030,7 @@ sub get_Columns {
 	Carp::confess(
 		ref($self)
 		  . ":get_Columns -> we need a hash with the keys 'search_columns' and (optional) 'complex_select'\n"
-	  )
-	  unless defined( ref( $hash->{'search_columns'} ) eq "ARRAY" );
+	) unless defined( ref( $hash->{'search_columns'} ) eq "ARRAY" );
 	@columns = @{ $hash->{'search_columns'} };
 
 	return $self->__get_Columns_by_name( $hash, $dataset )
@@ -1554,7 +1645,7 @@ sub __get_Columns {
 		$data = $self->getArray_of_Array_for_search(
 			{
 				'search_columns' => [@columns],
-				'where'          =>
+				'where' =>
 				  [ [ 'chromosomesTable.chromosome', '=', 'my value' ] ],
 				'complex_select' => $hash->{'complex_select'}
 			},
