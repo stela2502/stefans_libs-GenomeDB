@@ -309,6 +309,7 @@ foreach my $pathway_list (@pathways) {
 	$significant->make_column_LaTeX_p_type( 'gene list',    '7cm' );
 	$data_table->make_column_LaTeX_p_type( 'pathway_name', '3cm' );
 	$data_table->make_column_LaTeX_p_type( 'gene list',    '7cm' );
+	if ( $significant->Lines()) {
 	$Latex_Document->Section('Results')->Section($pathway_list)
 	  ->AddText(
 		"You have used the pathways from the file $pathway_list and obtained "
@@ -319,6 +320,24 @@ foreach my $pathway_list (@pathways) {
 		  . "I used a hypergeometric test implemented in Perl to access significances.\n"
 		  . "The significant results are shown in the following table, all results as well as the variables for the statistic test can be found in the Appendix.\n"
 	  )->AddTable($significant);
+	}
+	else {
+		my $significant = $data_table->select_where( 'hypergeometric p value',
+		sub { return $_[0] <= 0.01 } );
+		$significant->make_column_LaTeX_p_type( 'pathway_name', '3cm' );
+		$significant->make_column_LaTeX_p_type( 'gene list',    '7cm' );
+		$Latex_Document->Section('Results')->Section($pathway_list)
+	  ->AddText(
+		"You have used the pathways from the file $pathway_list and obtained "
+		  . $significant->Lines()
+		  . " significant results (p less than 0.01"
+		  . "; NOMINAL not corrected p value).\n"
+		  . "This relaxed p value cutoff has been used as not a single pathway passed the "
+		  . sprintf( "%.1E", $p_value ). " Bonferroni corrected 0.05 significance level.\n"
+		  . "I used a hypergeometric test implemented in Perl to access significances.\n"
+		  . "The significant results are shown in the following table, all results as well as the variables for the statistic test can be found in the Appendix.\n"
+	  )->AddTable($significant);
+	}
 	$Latex_Document->Section('Appendix')
 	  ->Section("All results for Pathways in file $pathway_list")
 	  ->AddText(
@@ -327,10 +346,10 @@ foreach my $pathway_list (@pathways) {
 		  . " nominaly significant results (p less than 0.05).\n\n"
 		  . "This is the documentation the Perl library has generated: "
 		  . $Pathways->{'description'}
-		  . "\n\nThe following table shows all results." )
-	  ->AddTable($data_table);
+		  . "\n\nThe whole table is not shown here." );
+	  #->AddTable($data_table);
 
-	$Latex_Document->Section('Appendix')->Section("All results for Pathways in file $pathway_list")->Section('Statistics Values') ->AddText('The statistic values')->AddTable($app_table)
+	#$Latex_Document->Section('Appendix')->Section("All results for Pathways in file $pathway_list")->Section('Statistics Values') ->AddText('The statistic values')->AddTable($app_table)
 }
 
 my $gene_description_obj = gene_description->new( variable_table->getDBH() );
@@ -342,5 +361,5 @@ $gene_description_obj->add_LaTeX_section_for_Gene_List(
 	}
 );
 
-$Latex_Document->write_file($outfile);
+$Latex_Document->write_tex_file($outfile);
 

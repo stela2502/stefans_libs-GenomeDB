@@ -862,7 +862,8 @@ sub init_tableStructure {
 		{
 			'name'        => 'timestamp',
 			'type'        => 'TIMESTAMP',
-			'NULL'        => '0',
+			'NULL'        => 0,
+			'default'     => "'".$self->NOW()."'",
 			'description' => ''
 		}
 	);
