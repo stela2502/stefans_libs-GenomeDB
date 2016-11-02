@@ -57,7 +57,7 @@ sub AddHeaderArray{
     $self->{gbText} .= "$line\n";
     unless ( $line =~ m/^            /){ ## HeaderEntry start
        if ( defined $features[0] ){
-           $tempLine = join(" ",@features);
+           $tempLine = join(" ", map { if ( defined $_) {$_ } else {''} } @features);
            next if ( $tempLine  =~ m/^ +FEATURES/);
            $tempLine =~ m/^ *(\w+) +(.*)/;
            $self->HeaderEntry($1, $2);

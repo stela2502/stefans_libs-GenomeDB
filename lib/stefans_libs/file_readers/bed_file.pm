@@ -287,37 +287,72 @@ sub efficient_match {
 	$max_dist ||= 0;
 	$colname  ||= $other_bed_file->{'read_filename'};
 	my $pos = $self -> Add_2_Header( $colname );
-	my ($line, $rep_pdl, $t1, $t2, @intron_ids );
+	my ($line, $rep_pdl, $t1, $t2,$t3, @intron_ids );
+	local $SIG{__WARN__} = sub { };
 	for ( my $i = 0; $i < $self->Rows(); $i ++ ){
 		$line = $self->get_line_asHash ( $i );
 		$rep_pdl = $other_bed_file ->get_pdls_4_chr( $line->{'chromosome'} );
-		if ( defined $rep_pdl ) {
-			$t1     = $rep_pdl->slice(',1') <= $line->{'end'} + $max_dist;
-			$t2     = $rep_pdl->slice(',2') >= $line->{'start'} - $max_dist;
+		if (  ref($rep_pdl) eq "PDL" ) {
+			$t1 = $rep_pdl->slice(',1') <= $line->{'end'} + $max_dist;
+			$t2 = $rep_pdl->slice(',2') >= $line->{'start'} - $max_dist;
 			#my $t =  which( $t1 + $t2 == 2 );
 			#print $t;
 			@intron_ids =
-			  list( transpose( which( $t1 + $t2 == 2 ) ) );
-			#print "Just for test questions: ". join(" ", @intron_ids)." with ".scalar(@intron_ids). " entries\n";
-			@{@{$self->{'data'}}[$i]}[$pos] = [@intron_ids];
+			  list( transpose( which( $t1 + $t2 == 2 ) ) );	
+			#print "Just for test questions: ". join(" ", @intron_ids)." with ".scalar(@intron_ids). " entries\nor more accurate:".
+			#join(", ", @{$other_bed_file->{'subset_4_PDL'}->{$line->{'chromosome'}}->GetAsArray('line_id')}[@intron_ids])."\n";
+			@{@{$self->{'data'}}[$i]}[$pos] = [ @{$other_bed_file->{'subset_4_PDL'}->{$line->{'chromosome'}}->GetAsArray('line_id')}[@intron_ids] ];
+			## the $other_bed_file->{'subset_4_PDL'} has been created to store the right ids in ...
 		}
 	}
 	return $self;
 }
+=head2 efficient_match_chr_position ( $chr, $start, $end, $max_dist )
+
+match the chromosomal area to the own data and returns the own matching row numbers.
+
+=cut
+
+sub efficient_match_chr_position {
+	my ( $self, $chr, $start, $end, $max_dist ) = @_;
+	$max_dist ||= 0;
+	$end ||= $start;
+	local $SIG{__WARN__} = sub { };
+	my $rep_pdl = $self ->get_pdls_4_chr( $chr );
+#	if ( @{@{$self->{'subset_4_PDL'}->{$chr}->{'data'}}[0]}[1]> $start ) {
+#		return ();
+#	}elsif ( @{@{$self->{'subset_4_PDL'}->{$chr}->{'data'}}[$self->{'subset_4_PDL'}->{$chr}->Rows()-1]}[2] < $start ){
+#		return ();
+#	}
+	if (  ref($rep_pdl) eq "PDL" ) {
+		my $t1 = $rep_pdl->slice(',1') <= $end + $max_dist;
+		my $t2 = $rep_pdl->slice(',2') >= $start - $max_dist;
+		my @intron_ids = list( transpose( which( $t1 + $t2 == 2 ) ) );	
+		return @{$self->{'subset_4_PDL'}->{$chr}->GetAsArray('line_id')}[@intron_ids];
+	}
+	return ();
+}
+
+
 
 sub get_pdls_4_chr {
 	my ( $self, $chr ) = @_;
 	my ($data);
 	$self->{'PDL'} ||={};
+	$self->{'subset_4_PDL'} ||= {};
+	unless ( $self->Header_Position('line_id') ){
+		$self->add_column('line_id', [ 0..($self->Rows()-1)] );
+	}
 	unless ( defined $self->{'PDL'}->{$chr} ) {
-	#	print "I create the PDL for chr $chr\n";
-		$self->{'PDL'}->{$chr} =
+		#print "I create the PDL for chr $chr\n";
+		$self->{'subset_4_PDL'}->{$chr} =
 		  $self ->select_where( 'chromosome',
 			sub { return 1 if ( $_[0] eq $chr ); return 0; }, $self->{'read_filename'}  );
-		return () if ( $self->{'PDL'}->{$chr}->Rows == 0 );
-		$self->{'PDL'}->{$chr} -> add_column ( 'INDEX', $self->{'last_matching'} );
-		$self->{'PDL'}->{$chr} -> define_subset ( 'PDL', [ 'INDEX','start','end']);
-		$self->{'PDL'}->{$chr} = $self->{'PDL'}->{$chr} -> GetAsObject('PDL')->GetAsPDL();
+		return () if ( $self->{'subset_4_PDL'}->{$chr}->Rows == 0 );
+		#print "I got ". $self->{'PDL'}->{$chr}->Rows. " entries for chr $chr\n".join("\t", @{@{$self->{'PDL'}->{$chr}->{'data'}}[0]})."\n";
+		$self->{'subset_4_PDL'}->{$chr} -> add_column ( 'INDEX', $self->{'last_matching'} );
+		$self->{'subset_4_PDL'}->{$chr} -> define_subset ( 'PDL', [ 'INDEX','start','end', 'line_id']);
+		$self->{'PDL'}->{$chr} = $self->{'subset_4_PDL'}->{$chr} -> GetAsObject('PDL')->GetAsPDL();
 	}
 	return $self->{'PDL'}->{$chr} ;
 }

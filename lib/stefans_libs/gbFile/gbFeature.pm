@@ -198,6 +198,9 @@ sub parseFromString {
 		if ( $line =~ m/     (\w+)\s+(.*)$/ ){
 			$self->{tag}    = $1;
 			$self->{region} = gbRegion->new($2);
+		}elsif ( $line =~ m/     (D-loop)\s+(.*)$/){
+			$self->{tag}    = $1;
+			$self->{region} = gbRegion->new($2);
 		}
 		elsif ( $self->format_match($line) =~ m/([\w\_]*)=('?"?.+'?"?)\s*$/ ) {
 			$self->AddInfo( $1, $2 );
@@ -206,7 +209,10 @@ sub parseFromString {
 			$self->AddInfo( $1, $2 );
 		}elsif ( $self->format_match($line) =~ /^.(\w+)$/ ) {
 			$self->AddInfo( $1 );
-		}else {
+		}elsif ( $self->format_match($line) =~ /^.(\w+)$/ ) {
+			$self->AddInfo( $1 );
+		}
+		else {
 			Carp::confess ( "Not supported feature line: $line\n'".$self->format_match($line)."'\n");
 		}
 	}
@@ -899,6 +905,7 @@ sub Name {
 	my ( $self, $name ) = @_;
 	if ( defined $name ) {
 		$name =~ s/"//g;
+		$name = $self->max_length( $name);
 		$self->AddInfo( "gene", $name );
 		return $name;
 	}
@@ -915,29 +922,24 @@ sub Name {
 		}
 	}
 	my $geneArrayRef;
-	if ( defined $self->{information}->{gene} ) {
-		$geneArrayRef = $self->{information}->{gene};
-		@$geneArrayRef[0] =~ s/"//g;
-		return @$geneArrayRef[0];
-	}
-	elsif ( defined $self->{information}->{locus_tag} ) {
-		$geneArrayRef = $self->{information}->{locus_tag};
-		@$geneArrayRef[0] =~ s/"//g;
-		return @$geneArrayRef[0];
-	}
-
-	elsif ( defined $self->{information}->{product} ) {
-		$geneArrayRef = $self->{information}->{product};
-		@$geneArrayRef[0] =~ s/"//g;
-		return @$geneArrayRef[0];
-	}
-	elsif ( defined $self->{information}->{note} ) {
-		$geneArrayRef = $self->{information}->{note};
-		@$geneArrayRef[0] =~ s/"//g;
-		return @$geneArrayRef[0];
+	foreach (qw( gene locus_tag product note) ){
+		if ( defined $self->{information}->{ $_ } ){
+			$geneArrayRef = $self->{information}->{$_};
+			@$geneArrayRef[0] =~ s/"//g;
+			return $self->max_length(@$geneArrayRef[0]);
+		}
 	}
 	return "not set";
 
+}
+
+sub max_length {
+	my ( $self, $str, $lengh ) = @_;
+	$length ||= 50;
+	if ( length($str) > $length ) {
+		$str = substr( $str, 0, ($length-1) );
+	}
+	return $str;
 }
 
 sub Gene {

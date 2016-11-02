@@ -339,7 +339,7 @@ sub download_refseq_genome_for_organism {
 				if ( $file =~ m/ref/ ) {
 					if ( $file =~ m/$file_match/ ) {
 						unless ( -f  "$self->{databaseDir}/$file" ) {
-							die "Does the file $self->{databaseDir}/$file really not exists?\n";
+							#die "Does the file $self->{databaseDir}/$file really not exists?\n";
 							my $cmd = "wget  ftp.ncbi.nlm.nih.gov/genomes/$organism/ARCHIVE/$version/$entry/$file -O $self->{databaseDir}/$file\n";
 							print  $cmd ;
 							system( $cmd );
