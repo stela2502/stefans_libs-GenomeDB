@@ -1,8 +1,8 @@
 #track type=narrowPeak visibility=3 db=hg19 name="595_3" description="0h (1) vs C1"
-chromosome	start	end	name	test
-chr1	1	100		1
-chr1	150	250	geneA Ctcf1 	1
-chr1	400	450		1
-chr1	500	550	geneB Ctcf2 	1
-chr1	600	650	geneB Ctcf2 	1
-chr2	1	2000	geneD geneE Ctcf4 Ctcf5 	1
+chromosome	start	end	name
+chr1	1	100	
+chr1	150	250	geneA Ctcf1 
+chr1	400	450	
+chr1	500	550	geneB Ctcf2 
+chr1	600	650	geneB Ctcf2 
+chr2	1	2000	geneD geneE Ctcf4 Ctcf5 

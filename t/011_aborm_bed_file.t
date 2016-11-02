@@ -33,7 +33,7 @@ Just ignore the results if you have installed a different version of the Mus mus
 #print $seq."\n";
 #die;
 
-my $bed = stefans_libs_file_readers_bed_file->new({'filename' => $plugin_path."/data/e_coli_test_1_summit.bed"} ); # <- a problematic peakranger bed file I need to add support for
+my $bed = stefans_libs::file_readers::bed_file->new({'filename' => $plugin_path."/data/e_coli_test_1_summit.bed"} ); # <- a problematic peakranger bed file I need to add support for
 
 my $cmd = 
         "perl $includes $plugin_path/../bin/get_sequences_4_bed_file.pl "

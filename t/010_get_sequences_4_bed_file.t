@@ -37,7 +37,7 @@ is_deeply( &get_chr1_seq( 1,100,1), 'GNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 
 is_deeply( &get_chr1_seq( 146,166,1), 'NNNNNNNNNNNCTGTCATAGA', 'get_chr1_seq' );
 
-my $bed = stefans_libs_file_readers_bed_file->new();
+my $bed = stefans_libs::file_readers::bed_file->new();
 
 $bed -> AddDataset({ 'chromosome' => 'chr1',
 			'start'      => 3000001,

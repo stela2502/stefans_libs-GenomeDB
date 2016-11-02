@@ -235,10 +235,10 @@ sub _check_plot_hash {
 		$self->{'error'} .= "Missing the '$_' -> 'name' hash entry\n"
 		  unless ( $hash->{$_}->{'name'} );
 		$self->{'error'} .=
-"Missing or not a 'stefans_libs_file_readers_bed_file' : '$_' -> 'object' hash entry\n"
+"Missing or not a 'stefans_libs::file_readers::bed_file' : '$_' -> 'object' hash entry\n"
 		  unless (
 			ref( $hash->{$_}->{'object'} ) eq
-			"stefans_libs_file_readers_bed_file" );
+			"stefans_libs::file_readers::bed_file" );
 	}
 	return 1 unless ( $self->{'error'} =~ m/\w/ );
 	return 0;

@@ -596,7 +596,7 @@ You as script writer need to use the 'stefans_libs::database::genomeDB' or the
 sub get_Features_as_BedFile {
 	my ( $self, $chr, $tag ) = @_;
 	$tag = '.' unless ( defined $tag );
-	my $bed_file = stefans_libs_file_readers_bed_file->new();
+	my $bed_file = stefans_libs::file_readers::bed_file->new();
 	foreach ( @{ $self->Features() } ) {
 		if ( $_->Tag() =~ m/$tag/ ) {
 			push( @{ $bed_file->{'data'} }, [ $chr, $_->Start(), $_->End() ] );

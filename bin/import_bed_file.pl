@@ -148,7 +148,7 @@ $ROI_reg->AddDataset(
 		'genome_id'    => $interface->{'genomeID'},
 	}
 );
-my $data_file = stefans_libs_file_readers_bed_file->new();
+my $data_file = stefans_libs::file_readers::bed_file->new();
 $data_file->read_file($bed_file);
 
 $interface = $interface->get_rooted_to("gbFilesTable");

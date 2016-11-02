@@ -101,13 +101,13 @@ print LOG $task_description."\n";
 close ( LOG );
 
 
-my $main = stefans_libs_file_readers_bed_file ->new();
+my $main = stefans_libs::file_readers::bed_file ->new();
 $main ->read_file ( $infile );
 my ($o, $name );
 foreach my $other_file ( @mapp_to ) {
 	next unless ( -f $other_file );
 	$name  = root->filemap($other_file);
-	$o =  stefans_libs_file_readers_bed_file ->new();
+	$o =  stefans_libs::file_readers::bed_file ->new();
 	$o -> read_file ( $other_file );
 	$main -> efficient_match ( $o, $name->{'filename_core'});
 }

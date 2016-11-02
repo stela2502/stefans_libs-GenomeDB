@@ -24,9 +24,9 @@ is_deeply(
 
 my ( $bedA, $bedB, $bedC );
 
-$bedA = stefans_libs_file_readers_bed_file->new();    ## the epigenetics 1
-$bedB = stefans_libs_file_readers_bed_file->new();    ## the genes
-$bedC = stefans_libs_file_readers_bed_file->new();    ## the epigenetics 2
+$bedA = stefans_libs::file_readers::bed_file->new();    ## the epigenetics 1
+$bedB = stefans_libs::file_readers::bed_file->new();    ## the genes
+$bedC = stefans_libs::file_readers::bed_file->new();    ## the epigenetics 2
 
 #####################
 # Add some data

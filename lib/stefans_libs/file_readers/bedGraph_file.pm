@@ -29,7 +29,7 @@ like 'perldoc perlpod'.
 
 =head1 NAME
 
-stefans_libs_file_readers_bed_file
+stefans_libs::file_readers::bed_file
 
 =head1 DESCRIPTION
 
@@ -44,7 +44,7 @@ A simple bed file reader.
 
 =head2 new
 
-new returns a new object reference of the class stefans_libs_file_readers_bed_file.
+new returns a new object reference of the class stefans_libs::file_readers::bed_file.
 
 =cut
 
@@ -312,6 +312,12 @@ sub write_file {
 	print OUT $self->AsString($subset);
 	close(OUT);
 	return $outfile;
+}
+
+sub sort {
+	my ( $self ) = @_;
+	return $self = $self->Sort_by(
+		[ [ 'chromosome', 'lexical' ], [ 'start', 'numeric' ] ] );
 }
 
 1;

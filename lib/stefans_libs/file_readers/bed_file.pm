@@ -1,4 +1,4 @@
-package stefans_libs_file_readers_bed_file;
+package stefans_libs::file_readers::bed_file;
 
 #  Copyright (C) 2012-10-28 Stefan Lang
 
@@ -30,7 +30,7 @@ like 'perldoc perlpod'.
 
 =head1 NAME
 
-stefans_libs_file_readers_bed_file
+stefans_libs::file_readers::bed_file
 
 =head1 DESCRIPTION
 
@@ -45,7 +45,7 @@ A simple bed file reader.
 
 =head2 new
 
-new returns a new object reference of the class stefans_libs_file_readers_bed_file.
+new returns a new object reference of the class stefans_libs::file_readers::bed_file.
 
 =cut
 
@@ -73,7 +73,7 @@ sub new {
 		'plot_frame'            => 1,
 	};
 
-	bless $self, $class if ( $class eq "stefans_libs_file_readers_bed_file" );
+	bless $self, $class if ( $class eq "stefans_libs::file_readers::bed_file" );
 	$self->Add_2_Header( [ 'chromosome', 'start','end' ,'name' ]);
 	$self->read_file( $hash->{'filename'}) if ( defined $hash->{'filename'});
 	return $self;
@@ -204,7 +204,7 @@ sub Title {
 	return $self->{'title'};
 }
 
-=head2 match_to ( stefans_libs_file_readers_bed_file );
+=head2 match_to ( stefans_libs::file_readers::bed_file );
 
 calculates the match between one bed_file and another.
 You will get an array containing the matching entries in the other table as array of lines_ids.

@@ -54,7 +54,7 @@ my $error = '';
 unless ( defined $region[0] ) {
 	$error .= "the cmd line switch -region is undefined!\n";
 }elsif ( -f $region[0] ) {
-	my $tmp = stefans_libs_file_readers_bed_file ->new({'filename' => $region[0]} );
+	my $tmp = stefans_libs::file_readers::bed_file ->new({'filename' => $region[0]} );
 	@region = @{$tmp->CHR_key()};
 }
 unless ( defined $outfile ) {

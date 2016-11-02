@@ -226,7 +226,7 @@ for ( my $i = 0 ; $i < @additional_data ; $i++ ) {
 	my $obj;
 	if ( -f $data ) {
 		if ( $data =~ m/bed$/ ) {
-			$obj = stefans_libs_file_readers_bed_file->new();
+			$obj = stefans_libs::file_readers::bed_file->new();
 			$obj->read_file($data);
 		}
 		elsif ( $data =~ m/bedGraph$/ ) {
@@ -235,7 +235,7 @@ for ( my $i = 0 ; $i < @additional_data ; $i++ ) {
 		}
 		else {
 			## OK some strange file ending - but I expect the default to be a bed file
-			$obj = stefans_libs_file_readers_bed_file->new();
+			$obj = stefans_libs::file_readers::bed_file->new();
 			$obj->read_file($data);
 		}
 	}

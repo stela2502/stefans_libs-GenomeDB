@@ -136,7 +136,7 @@ $interface -> Connect_2_REPEAT_ROI_table() if ( $masked );
 $masked ||= 0;
 #print "Do I have to mask the genome? $masked\n";
 
-$bed = stefans_libs_file_readers_bed_file->new();
+$bed = stefans_libs::file_readers::bed_file->new();
 $bed -> read_file ( $bed_file );
 
 ## so now iónle get the info from the DB - fingers crossed!

@@ -290,7 +290,7 @@ sub get_ROI_as_bed_file {
 		@$search_array
 	);
 	my $hash;
-	my $return = stefans_libs_file_readers_bed_file->new();
+	my $return = stefans_libs::file_readers::bed_file->new();
 	my $chr_table = chromosomesTable->new( $self->{'dbh'} );
 	$hash = $self->TableBaseName ();
 	$hash =~s/_repeat$//;

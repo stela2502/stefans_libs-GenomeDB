@@ -59,7 +59,7 @@ $figure->AddDataset(
 	'green', 'the repeat regions'
 );
 ## 2: red information from a bed file
-my $bed_file = stefans_libs_file_readers_bed_file->new();
+my $bed_file = stefans_libs::file_readers::bed_file->new();
 $bed_file->read_file("$plugin_path/data/temp_data_red.bed");
 $figure->AddDataset( $bed_file, 'red', 'A bed file in red' );
 

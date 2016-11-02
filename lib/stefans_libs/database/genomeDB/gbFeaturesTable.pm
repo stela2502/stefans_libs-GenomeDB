@@ -99,7 +99,7 @@ sub get_promoter_regions_4_genes{
 	'where' => [ ['name', '=', 'my_value'], ['tag', '=', 'my_value'] ],},  $genes , 'gene' );
 	## OK now I have all mRNA gbStrings, the gbFile_id and that should be enough to create a bed file!
 #	print "I got the data table:\n".$data_table->AsString(). " using the search '$self->{'complex_search'}'\n";
-	my $bedfile = stefans_libs_file_readers_bed_file->new();
+	my $bedfile = stefans_libs::file_readers::bed_file->new();
 	my $gbFeature = gbFeature->new('nix', '1..2' );
 	my ($startP, $endP, @return, $hash );
 	for (my $i = 0; $i < $data_table->Lines; $i ++ ) {
@@ -390,7 +390,7 @@ sub get_genes_in_chromosomal_region_as_bedFile {
 	my ( $self, $chr, $start, $end ) = @_;
 
 	my ( $data, $data_table, $chr_chr );
-	my $bed_file = stefans_libs_file_readers_bed_file->new();
+	my $bed_file = stefans_libs::file_readers::bed_file->new();
 	$chr_chr = $chr; 
 	$chr_chr = "chr$chr" unless ( $chr =~ m/chr/);
 	foreach (
@@ -763,7 +763,7 @@ sub get_as_bed_file {
 		$e_start = 0;
 	}
 
-	$bed_file = stefans_libs_file_readers_bed_file->new();
+	$bed_file = stefans_libs::file_readers::bed_file->new();
 	$helper   = 0;
 	$where    = [];
 	$search   = [];

@@ -171,12 +171,12 @@ if ( $with_header ) {
 	$source_bed->Rename_Column( @{$source_bed->{'header'}}[2],'end' );
 	$source_bed->Rename_Column( @{$source_bed->{'header'}}[3], 'name');
 	## hard core class remapping!
-	my $self = stefans_libs_file_readers_bed_file->new();
+	my $self = stefans_libs::file_readers::bed_file->new();
 	$self -> Add_2_Header( [@{$source_bed->{'header'}}[4..($source_bed->Columns()-1)]]);
 	$self -> {'data'} = $source_bed->{'data'};
 	$source_bed = $self;
 }else {
-	$source_bed = stefans_libs_file_readers_bed_file->new({ 'filename' => $bed_file });
+	$source_bed = stefans_libs::file_readers::bed_file->new({ 'filename' => $bed_file });
 }
 
 my $overlap = $source_bed -> efficient_match ( $genome_bed , 'genome_ids', $max_distance );

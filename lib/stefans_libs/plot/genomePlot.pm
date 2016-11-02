@@ -61,7 +61,7 @@ sub new {
 		'data'                                    => [],
 		'colors'                                  => [],
 		'stefans_libs::file_readers::bedGraph_file' => 50,
-		'stefans_libs_file_readers_bed_file'      => 20,
+		'stefans_libs::file_readers::bed_file'      => 20,
 		'genome_height'                           => 150,
 	};
 
@@ -88,7 +88,7 @@ sub GenomeInterface {
 =head AddDataset ($data, $color )
 
 This function adds data to the figure staring from the top to the botom.
-The data has to be of type 'stefans_libs_file_readers_bed_file' or 'stefans_libs::file_readers::bedGraph_file'
+The data has to be of type 'stefans_libs::file_readers::bed_file' or 'stefans_libs::file_readers::bedGraph_file'
 to be plotted.
 
 The color should be given as 'red', 'blue' or something like that. You can get a list of defined 
@@ -99,10 +99,10 @@ colors by looking into the color object.
 sub AddDataset {
 	my ( $self, $data, $color, $title ) = @_;
 	unless ( ref($data) eq 'stefans_libs::file_readers::bedGraph_file' ) {
-		unless ( ref($data) eq 'stefans_libs_file_readers_bed_file' ) {
+		unless ( ref($data) eq 'stefans_libs::file_readers::bed_file' ) {
 			Carp::confess(
 "Sorry, but you can only add 'stefans_libs::file_readers::bedGraph_file'"
-				  . "or 'stefans_libs_file_readers_bed_file' objects to the graph!\n"
+				  . "or 'stefans_libs::file_readers::bed_file' objects to the graph!\n"
 				  . "Not '"
 				  . ref($data)
 				  . "'\n" );
@@ -166,7 +166,7 @@ sub _check_plot_2_image_hash {
 Set the image height for the different data types.
 'dataset_names' can be 
 'stefans_libs::file_readers::bedGraph_file',
-'stefans_libs_file_readers_bed_file' or
+'stefans_libs::file_readers::bed_file' or
 'genome'.
 
 =cut

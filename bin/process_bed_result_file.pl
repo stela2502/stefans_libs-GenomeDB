@@ -89,7 +89,7 @@ $task_description .= 'perl '.root->perl_include().' '.$plugin_path .'/process_be
 $task_description .= " -infile $infile" if (defined $infile);
 $task_description .= " -outfile $outfile" if (defined $outfile);
 
-my $bed_file = stefans_libs_file_readers_bed_file -> new();
+my $bed_file = stefans_libs::file_readers::bed_file -> new();
 $bed_file ->read_file ( $infile );
 my $result_file = data_table->new();
 foreach ( qw(gene transcribed_region_hits promoter_hit mRNA_end_hit) ){

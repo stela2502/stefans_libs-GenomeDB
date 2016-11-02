@@ -105,7 +105,7 @@ close ( LOG );
 
 ## Do whatever you want!
 
-my $target_bed = stefans_libs_file_readers_bed_file->new();
+my $target_bed = stefans_libs::file_readers::bed_file->new();
 $target_bed -> read_file ( $target );
 for( my $i = 0; $i< $target_bed ->Lines(); $i++ ) {
 	@{@{$target_bed ->{'data'}} [$i] } [3] .= " ";
@@ -120,7 +120,7 @@ foreach my $description_hash ( @{$descriptions_file->GetAll_AsHashArrayRef() } )
 		warn "File not found '$description_hash->{'file'}'\n";
 		next;
 	}
-	$source_bed = stefans_libs_file_readers_bed_file->new();
+	$source_bed = stefans_libs::file_readers::bed_file->new();
 	$source_bed -> read_file ( $description_hash->{'file'} );
 	print "I read the description bed file '$description_hash->{'file'}' contining values for $description_hash->{'info'}\n";
 	if ( defined $description_hash->{'info'} ) {

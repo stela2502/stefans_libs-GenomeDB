@@ -99,7 +99,7 @@ close ( LOG );
 
 
 ## Do whatever you want!
-my $target_bed = stefans_libs_file_readers_bed_file->new();
+my $target_bed = stefans_libs::file_readers::bed_file->new();
 $target_bed -> read_file ( $target );
 
 $target_bed->calculate_on_columns ( {

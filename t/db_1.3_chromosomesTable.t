@@ -64,7 +64,7 @@ $gbFilesTable = $gbFilesTable->get_rooted_to("gbFilesTable");
 my $ROI_table = $gbFilesTable->Connect_2_result_ROI_table();
 $ROI_table->create();
 is_deeply ( $ROI_table->TableName(), 'hu_genome_36_3_ROI_table', 'the repeat table name');
-my $data_file = stefans_libs_file_readers_bed_file->new();
+my $data_file = stefans_libs::file_readers::bed_file->new();
 $data_file->{'data'} = [ [ 'chrY', 1, 100 ], [ 'chrY', 100, 84821 + 570 ] ];
 $data_file->write_file("$plugin_path/data/temp_data.bed");
 
@@ -172,7 +172,7 @@ $gbFilesTable = $gbFilesTable->get_rooted_to("gbFilesTable");
 $ROI_table = $gbFilesTable->Connect_2_REPEAT_ROI_table();
 $ROI_table->create();
 is_deeply ( $ROI_table->TableName(), 'hu_genome_36_3_repeat_ROI_table', 'the repeat table name');
-$data_file = stefans_libs_file_readers_bed_file->new();
+$data_file = stefans_libs::file_readers::bed_file->new();
 $data_file->{'data'} = [ [ 'chrY', 1, 100 ], [ 'chrY', 100, 84821 + 570 ] ];
 $data_file->write_file("$plugin_path/data/temp_data.bed");
 
