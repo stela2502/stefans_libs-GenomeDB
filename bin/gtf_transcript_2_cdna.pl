@@ -73,6 +73,15 @@ unless ( defined $gtf) {
 unless ( defined $ids[0]) {
 	$error .= "the cmd line switch -ids is undefined!\n";
 }
+elsif ( -f $ids[0]) {
+	open ( IN , "<$ids[0]") or die $!;
+	@ids = ();
+	while ( <IN> ) {
+		chomp();
+		push( @ids, split(/\s+/, $_ ) );
+	}
+	close ( IN );
+}
 unless ( defined $genome_path) {
 	$error .= "the cmd line switch -genome_path is undefined!\n";
 }
