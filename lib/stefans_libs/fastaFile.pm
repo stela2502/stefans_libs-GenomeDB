@@ -87,19 +87,28 @@ AddFile is used to import a fasta formated txt file.
 
 =cut
 
+sub read_file {
+	return shift->AddFile(@_);
+}
+
 sub AddFile {
 
 	my ( $self, $filename ) = @_;
 
 	my ( $seq, $i );
 	$i = 0;
-	open( IN, "<$filename" ) or die "Konnte $filename nicht öffnen!\n";
-
+	
+	if ($filename =~ m/.gz$/) {
+		open ( IN , "zcat $filename|" ) or die "I could not open the gzipped file $filename\n$!\n";
+	}	else {
+		open( IN, "<$filename" ) or die "Konnte $filename nicht öffnen!\n$!\n";
+	}
+	print "I open the fasta file $filename\n";
 	while (<IN>) {
 		if ( $_ =~ m/^>([\w\d]*)/ ) {
 			if ( defined $self->{header} ) {
 				die
-"Mehrere Fasta Einträge in einem File => return value == array of fastaFiles!\n";
+"Mehrere Fasta Einträge in einem File => return value == array of fastaFiles!\n$!\n";
 			}
 
 			$self->Name($1);
@@ -112,11 +121,18 @@ sub AddFile {
 
 			#       print "SeqLine Nr.",$i++,"\n";
 		}
-		$self->Seq($seq);
 	}
+	$self->Seq($seq);
 	close(IN);
 	print "Sequence infos added!\n";
 	return 1;
+}
+
+sub Create{
+	my ( $self, $acc, $seq ) = @_;
+	$self->Name($acc);
+	$self->Seq($seq);
+	return $self;
 }
 
 sub parseString {
@@ -159,13 +175,13 @@ the substring of the sequence or the whole sequence if start and end where not d
 sub Get_SubSeq {
 	my ( $self, $start, $end ) = @_;
 	my ($seq);
-
+	warn "Get_SubSeq $start $end\n";
 	if ( defined $start ) {
 		if ( defined $end ) {
-			return substr( $self->Seq, $start, $end - $start );
+			return substr( $self->Seq, $start-1, $end - $start +1);
 		}
 		else {
-			return substr( $self->Seq, $start, length( $self->Seq ) - $start );
+			return substr( $self->Seq, $start-1, length( $self->Seq ) - $start +1);
 		}
 	}
 	return $self->Seq;
@@ -186,6 +202,9 @@ WriteAsFasta wirtes the internal sequence representation in fasta format.
 
 =cut
 
+sub write_file{
+	shift->WriteAsFasta(@_);
+}
 sub WriteAsFasta {
 	my ( $self, $filename, $startSeq, $endSeq ) = @_;
 
@@ -201,6 +220,16 @@ sub WriteAsFasta {
 	}
 	print "Sequence written as $filename in FASTA format\n";
 	return 1;
+}
+
+sub AsFasta {
+	my ( $self, $startSeq, $endSeq) = @_;
+	my $seq = $self->Get_SubSeq( $startSeq, $endSeq );
+	my $ret = ">". $self->Name(). "\n";
+	for ( my $start = -1 ; $start < length($seq) ; $start += 60 ) {
+		$ret .= substr( $seq, $start + 1, 60 ). "\n";
+	}
+	return $ret;
 }
 
 =head2 Name
@@ -236,6 +265,13 @@ sub Seq {
 		}
 	}
 	return $self->{'seq'};
+}
+
+sub revComplement {
+	my ( $self, $seq ) =@_;
+	$seq =~ tr/[ATGCUatgcuNnYyRrSsWwKkMmBbDdHhVv]/[TACGAtacgaNnRrYySsWwMmKkVvHhDdBb]/;
+	$seq = reverse($seq);
+	return $seq;
 }
 
 1;

@@ -20,7 +20,10 @@ use strict;
 use warnings;
 
 use stefans_libs::flexible_data_structures::data_table;
+use stefans_libs::file_readers::bed_file;
+use stefans_libs::fastaFile;
 use base 'data_table';
+use PDL;
 
 =head1 General description
 
@@ -48,6 +51,8 @@ sub new {
     my ($self);
     $self = {
         'debug'           => $debug,
+        'slice_length' => 1e+6,
+        'chr_path' => '',
         'arraySorter'     => arraySorter->new(),
         'header_position' => { 
             'seqname' => 0,
@@ -96,33 +101,184 @@ sub pre_process_array{
 	return 1;
 }
 
+sub get_cDNA_4_transcript {
+	my ( $self, $id, $seqpath ) = @_;
+	$self->{'chr_path'} ||= $seqpath;
+	$seqpath ||= $self->{'chr_path'};
+	
+	unless ( defined $self->{'exons'} ) {
+		$self->{'exons'} = $self->_copy_without_data();
+		my $t = $self->createIndex('feature')->{'exon'};
+		unless ( ref($t) eq "ARRAY") {
+			Carp::confess( "Why is the index -> exon not an array??".root->print_perl_var_def(  $self->createIndex('feature') ). "\n");
+		}
+		@{$self->{'exons'}->{'data'}} = @{$self->{'data'}}[@$t];
+	}
+	Carp::confess ( "I need a seqpath as second argument!" ) unless ( -d $seqpath) ;
+	my $ids = $self->{'exons'}->createIndex ( 'transcript_id' )->{$id };
+	unless ( defined $ids ) {
+		warn "ID $id not found!\n";
+		return "";
+	}
+	## by definition this has to be on exactly one chromosome
+	my $chr = @{@{$self->{'data'}}[@$ids[0]]}[0];
+	$self->{'fastafiles'} ||= {};
+	unless ( defined  $self->{'fastafiles'}->{$chr} ){
+		print "read sequence from $chr\n";
+		$self->{'fastafiles'}->{$chr} = fastaFile->new();
+		if ( -f "$seqpath/$chr.fa" ) {
+			$self->{'fastafiles'}->{$chr} -> AddFile("$seqpath/$chr.fa" );
+		}elsif ( -f "$seqpath/$chr.fa.gz"){
+			$self->{'fastafiles'}->{$chr} -> AddFile("$seqpath/$chr.fa.gz" );
+		}
+		 
+	}
+	my $tmp = $self->_copy_without_data();
+	push( @{$tmp->{'data'}}, @{$self->{'exons'}->{'data'}}[@$ids] );
+	$tmp = $tmp -> Sort_by( [['start', 'numeric']]);
+	my $seq = '';
+	my $ff = fastaFile->new();
+	
+	for ( my $i = 0; $i < $tmp->Lines(); $i ++ ) {
+		
+		$seq .= $self->{'fastafiles'}->{$chr} -> Get_SubSeq ( @{@{$tmp->{'data'}}[$i]}[3,4] );
+	}
+	$seq = uc($seq);
+	
+	if ( @{@{$self->{'data'}}[@$ids[0]]}[6] eq "-"){
+		$seq = $ff->revComplement( $seq );
+	}
+	$ff->Create( "$chr:$id cdna right strand", $seq);
+	return $ff->AsFasta();
+	
+}
+
 sub After_Data_read {
 	my ($self) = @_;
 	## process the atribute into a set of columns
 	#gene_id "ENSG00000223972.5"; gene_type "transcribed_unprocessed_pseudogene"; gene_status "KNOWN"; gene_name "DDX11L1"; level 2; havana_gene "OTTHUMG00000000961.2";
-	my (@values, $tmp, $helper, $a, @p);
+	my ($values, $tmp, $helper, $a, @p);
 	$helper = data_table->new();
 	$helper -> {'string_separator'} = '"';
 	$helper -> {'line_separator'} = " ";
-	
+	my $added = {};
 	for ( my $i = 0; $i < $self->Lines(); $i ++){
 		@{@{$self->{'data'}}[$i]}[8] =~ s/;$//;
 		$tmp = [ split( /; /, @{@{$self->{'data'}}[$i]}[8])];
-		print "And I got these values from the split_line call: ".join(", ",@$tmp)."\n";
-		@values = undef;
+		#print "And I got these values from the split_line call: ".join(", ",@$tmp)."\n";
+		$values= ();
 		for ( $a=0; $a < @$tmp; $a++ ){
 			@p = @{$helper->__split_line(@$tmp[$a])};
-			push ( @values, $p[1]);
-			$self->Add_2_Header ($p[0]) if ( $i == 0);
+			$values ->{$p[0]} = $p[1];
+			unless ( $added->{$p[0]} ){
+				( $added->{$p[0]} ) = $self->Add_2_Header ($p[0]);
+			}
 		}
-		push (@{@{$self->{'data'}}[$i]}, @values );
+		foreach ( keys %$values ) {
+			@{@{$self->{'data'}}[$i]}[$added->{$_} ] = $values->{$_};
+		}
 	}
+	$self->{'__max_header__'} = scalar( @{$self->{'header'}});
 	$self = $self->drop_column ( 'attribute' );
 	return $self;
 }
 
+sub get_chr_subID_4_start {
+	my ( $self, $start ) = @_;
+	return floor(($start / $self->{'slice_length'}));
+}
+
+sub get_pdls_4_chr {
+	my ( $self, $chr, $start ) = @_;
+	my ($data);
+	$self->{'PDL'} ||={};
+	$self->{'PDL'}->{$chr} ||= [];
+	$self->{'subset_4_PDL'} ||= {};
+	$self->{'subset_4_PDL'}->{$chr} ||= [];
+	unless ( $self->Header_Position('line_id') ){
+		$self->add_column('line_id', [ 0..($self->Rows()-1)] );
+	}
+	unless ( defined $self->{'subsetter'} ) {
+		my @col_ids = $self -> define_subset( 'matcher', ['seqname', 'start', 'end']);
+		$self->{'subsetter'} = stefans_libs::file_readers::bed_file ->new();
+		for ( my $i = 0; $i < $self->Lines(); $i ++) {
+			push ( @{$self->{'subsetter'}->{'data'}}, [@{@{$self->{'data'}}[$i]}[@col_ids]] );
+		}
+	} 
+	my $chr_id = $self->get_chr_subID_4_start( $start );
+	#Carp::confess ( $self->AsString() );
+	unless ( defined @{$self->{'PDL'}->{$chr}}[$chr_id] ) {
+		#print "I create the PDL for chr $chr\n";
+		
+		my ($regions_start, $region_end );
+		$regions_start = $chr_id * $self->{'slice_length'} -10;
+		$region_end = ($chr_id+1) * $self->{'slice_length'} +10;
+		@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] = $self->_copy_without_data();
+		@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->{'data'} = [ 
+			@{$self->{'data'}}[$self->{'subsetter'}->efficient_match_chr_position( $chr,$regions_start, $region_end )] 
+		];
+		
+		print "I create the PDL for chr $chr and id $chr_id and got ".@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Lines()." lines back\n";
+		if ( @{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Rows == 0 ){
+			@{$self->{'PDL'}->{$chr}}[$chr_id] = '';
+			return ();
+		}
+		#print "I got ". $self->{'PDL'}->{$chr}->Rows. " entries for chr $chr\n".join("\t", @{@{$self->{'PDL'}->{$chr}->{'data'}}[0]})."\n";
+	
+		@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> add_column ( 'INDEX', [0..(@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Rows()-1)]);
+		@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> define_subset ( 'PDL', [ 'INDEX','start','end', 'line_id']);
+		@{$self->{'PDL'}->{$chr}}[$chr_id] = @{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> GetAsObject('PDL')->GetAsPDL();
+	}
+	return @{$self->{'PDL'}->{$chr}}[$chr_id] ;
+}
+
+sub print_as_table {
+	my ( $self,$outfile ) = @_;
+	my @temp;
+	@temp = split( "/", $outfile );
+	pop(@temp);
+	mkdir( join( "/", @temp ) ) unless ( -d join( "/", @temp ) );
+	unless ( $outfile =~ m/xls$/ ) {
+		$outfile .= ".xls";
+	}
+	open( OUT, " >$outfile" )
+	  or Carp::confess(
+		ref($self)
+		  . "::print2file -> I can not create the outfile '$outfile'\n$!\n" );
+		my $str = '';
+	my @default_values;
+	my @line;
+	foreach my $description_line ( @{ $self->{'description'} } ) {
+		$description_line =~ s/\n/\n#/g;
+		$str .= "#$description_line\n";
+	}
+	$str .= '#' unless ( $self->{'no_doubble_cross'} );
+	$str .= $self->SUPER::__header_as_string();
+	@default_values = $self->getAllDefault_values();
+	$self->Max_Header() = scalar( @{ $self->{'header'} } )
+	  unless ( defined $self->Max_Header() );
+	foreach my $data ( @{ $self->{'data'} } ) {
+		@line = @$data;
+		for ( my $i = 0 ; $i < $self->Max_Header() ; $i++ ) {
+			unless ( defined $line[$i] ) {
+				$line[$i] = $default_values[$i];
+			}
+			$line[$i] = '"' . $line[$i] . '"'
+			  if ( $self->__col_format_is_string($i) );
+		}
+		$str .= join( $self->line_separator(), @line ) . "\n";
+	}
+	print OUT $str;
+	close(OUT);
+	print "all data written to '$outfile'\n";
+	return $outfile;
+}
 
 
-
+sub get_subset_4_PDL_ids {
+	my ( $self, $chr,$start, $ids ) = @_;
+	my $chr_id = $self->get_chr_subID_4_start( $start );
+	return @{@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->GetAsArray('line_id')}[@$ids] ;
+}
 
 1;

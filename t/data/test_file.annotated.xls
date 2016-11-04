@@ -1,0 +1,6 @@
+#chromosome	start	end	name	gtf_seqname	gtf_source	gtf_feature	gtf_start	gtf_end	gtf_score	gtf_strand	gtf_frame	gtf_attribute	gtf_gene_id	gtf_gene_type	gtf_gene_status	gtf_gene_name	gtf_level	gtf_havana_gene
+chr1	41648425	41648811		chr1	HAVANA	exon	41642425	41649811	.	+	.	ENSG00000223972.5	ENST00000456328.2	transcribed_unprocessed_pseudogene	KNOWN	DDX11L1	processed_transcript	
+chr1	43632534	43632992		no match														
+chr10	2603004	2607294		chr10 // chr10	HAVANA // HAVANA	exon // exon	2602004 // 2602004	2609294 // 2609294	. // .	+ // +	. // .	ENSG00000223972.5 // ENSG00000223972.52	ENST00000456328.2 // ENST00000456328.22	transcribed_unprocessed_pseudogene // transcribed_unprocessed_pseudogene	KNOWN // KNOWN	DDX11L1 // DDX11L12	processed_transcript // processed_transcript	 // 
+chr10	90101388	90104119		no match														
+chr10	94458911	94461065		no match														

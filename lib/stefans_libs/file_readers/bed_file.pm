@@ -61,6 +61,12 @@ sub new {
 		'arraySorter' => arraySorter->new(),
 		## if you change the columns think also to change the parse_from_string function!
 		'header_position' => {},
+		'bed_variables' => {
+			'browser position' => '',
+			'track name' => '',
+			'description' => '',
+			'color' => '',
+		},
 		'no_doubble_cross' => 1,
 		'default_value'         => [],
 		'header'                => [],
@@ -288,25 +294,41 @@ sub efficient_match {
 	$colname  ||= $other_bed_file->{'read_filename'};
 	my $pos = $self -> Add_2_Header( $colname );
 	my ($line, $rep_pdl, $t1, $t2,$t3, @intron_ids );
-	local $SIG{__WARN__} = sub { };
+	#local $SIG{__WARN__} = sub { };
 	for ( my $i = 0; $i < $self->Rows(); $i ++ ){
 		$line = $self->get_line_asHash ( $i );
-		$rep_pdl = $other_bed_file ->get_pdls_4_chr( $line->{'chromosome'} );
+		$rep_pdl = $other_bed_file ->get_pdls_4_chr( $line->{'chromosome'}, $line->{'start'} );
+		unless ( defined $rep_pdl){
+			@{@{$self->{'data'}}[$i]}[$pos] = "No information about this area on chromosome '$line->{'chromosome'}' in the other file";
+			next;
+		}
+		## while testing:
+		#print "I asked for $line->{'chromosome'} and got this: ".$rep_pdl."\n";
+		
 		if (  ref($rep_pdl) eq "PDL" ) {
 			$t1 = $rep_pdl->slice(',1') <= $line->{'end'} + $max_dist;
 			$t2 = $rep_pdl->slice(',2') >= $line->{'start'} - $max_dist;
-			#my $t =  which( $t1 + $t2 == 2 );
+			
+			
+			my $t =  which( $t1 + $t2 == 2 );
+			@intron_ids =list( transpose( which( $t1 + $t2 == 2 ) ) );
+			  
+			## while testing:
 			#print $t;
-			@intron_ids =
-			  list( transpose( which( $t1 + $t2 == 2 ) ) );	
-			#print "Just for test questions: ". join(" ", @intron_ids)." with ".scalar(@intron_ids). " entries\nor more accurate:".
-			#join(", ", @{$other_bed_file->{'subset_4_PDL'}->{$line->{'chromosome'}}->GetAsArray('line_id')}[@intron_ids])."\n";
-			@{@{$self->{'data'}}[$i]}[$pos] = [ @{$other_bed_file->{'subset_4_PDL'}->{$line->{'chromosome'}}->GetAsArray('line_id')}[@intron_ids] ];
+			#print "Just for test questions: entrie matched to ". join(" ", @intron_ids)." with ".scalar(@intron_ids). " entries\nor more accurate:".
+			#	join(", ", @{$other_bed_file->{'subset_4_PDL'}->{$line->{'chromosome'}}->GetAsArray('line_id')}[@intron_ids])."\n";
+			@{@{$self->{'data'}}[$i]}[$pos] = [ $other_bed_file -> get_subset_4_PDL_ids( $line->{'chromosome'}, $line->{start}, \@intron_ids )];
 			## the $other_bed_file->{'subset_4_PDL'} has been created to store the right ids in ...
 		}
 	}
 	return $self;
 }
+
+sub get_subset_4_PDL_ids {
+	my ( $self, $chr,$start, $ids ) = @_;
+	return @{$self->{'subset_4_PDL'}->{$chr}->GetAsArray('line_id')}[@$ids] ;
+}
+
 =head2 efficient_match_chr_position ( $chr, $start, $end, $max_dist )
 
 match the chromosomal area to the own data and returns the own matching row numbers.
@@ -317,13 +339,8 @@ sub efficient_match_chr_position {
 	my ( $self, $chr, $start, $end, $max_dist ) = @_;
 	$max_dist ||= 0;
 	$end ||= $start;
-	local $SIG{__WARN__} = sub { };
-	my $rep_pdl = $self ->get_pdls_4_chr( $chr );
-#	if ( @{@{$self->{'subset_4_PDL'}->{$chr}->{'data'}}[0]}[1]> $start ) {
-#		return ();
-#	}elsif ( @{@{$self->{'subset_4_PDL'}->{$chr}->{'data'}}[$self->{'subset_4_PDL'}->{$chr}->Rows()-1]}[2] < $start ){
-#		return ();
-#	}
+	#local $SIG{__WARN__} = sub { };
+	my $rep_pdl = $self ->get_pdls_4_chr( $chr, $start );
 	if (  ref($rep_pdl) eq "PDL" ) {
 		my $t1 = $rep_pdl->slice(',1') <= $end + $max_dist;
 		my $t2 = $rep_pdl->slice(',2') >= $start - $max_dist;
@@ -343,14 +360,18 @@ sub get_pdls_4_chr {
 	unless ( $self->Header_Position('line_id') ){
 		$self->add_column('line_id', [ 0..($self->Rows()-1)] );
 	}
+	my $ids;
 	unless ( defined $self->{'PDL'}->{$chr} ) {
-		#print "I create the PDL for chr $chr\n";
-		$self->{'subset_4_PDL'}->{$chr} =
-		  $self ->select_where( 'chromosome',
-			sub { return 1 if ( $_[0] eq $chr ); return 0; }, $self->{'read_filename'}  );
+		print "I create the PDL for chr $chr\n";
+		$ids = $self ->createIndex('chromosome')->{$chr};
+		return () unless ( $ids );
+		return () unless ( @$ids );
+		$self->{'subset_4_PDL'}->{$chr} = $self->_copy_without_data();
+		push (@{$self->{'subset_4_PDL'}->{$chr}->{'data'}}, @{$self->{'data'}}[@$ids] );
+		
 		return () if ( $self->{'subset_4_PDL'}->{$chr}->Rows == 0 );
 		#print "I got ". $self->{'PDL'}->{$chr}->Rows. " entries for chr $chr\n".join("\t", @{@{$self->{'PDL'}->{$chr}->{'data'}}[0]})."\n";
-		$self->{'subset_4_PDL'}->{$chr} -> add_column ( 'INDEX', $self->{'last_matching'} );
+		$self->{'subset_4_PDL'}->{$chr} -> add_column ( 'INDEX', [0..($self->{'subset_4_PDL'}->{$chr}->Rows()-1)]);
 		$self->{'subset_4_PDL'}->{$chr} -> define_subset ( 'PDL', [ 'INDEX','start','end', 'line_id']);
 		$self->{'PDL'}->{$chr} = $self->{'subset_4_PDL'}->{$chr} -> GetAsObject('PDL')->GetAsPDL();
 	}
@@ -493,7 +514,7 @@ sub AsString{
 		$str .= "$description_line\n";
 	}
 	for ( my $i = 0 ; $i < $self->Lines() ; $i++ ) {
-		$str .= join( "\t", @{ @{ $self->{'data'} }[$i] } ) . "\n";
+		$str .= join( "\t", map { unless ( defined $_){''} else {$_}} @{ @{ $self->{'data'} }[$i] } ) . "\n";
 	}
 	return $str;
 }
@@ -559,7 +580,49 @@ sub print2file {
 	  or Carp::confess(
 		ref($self)
 		  . "::print2file -> I can not create the outfile '$outfile'\n$!\n" );
+	my $line_end = '';
+	foreach ( keys %{$self->{'bed_variables'} } ) {
+		if ( $self->{'bed_variables'}->{$_} ) {
+			print OUT "$_=$self->{'bed_variables'}->{$_},";
+			$line_end = "\n";
+		}
+	}
+	print OUT $line_end;
 	print OUT $self->AsString();
+	close(OUT);
+	print "all data written to '$outfile'\n";
+	return $outfile;
+}
+
+sub bed_variable {
+	my ( $self, $key, $value ) = @_;
+	if ( defined $self->{'bed_variables'}->{$key} ) {
+		$self->{'bed_variables'}->{$key} = $value;
+	}else {
+		warn "bed_variable $key has not been defined here!\n";
+	}
+	return $self->{'bed_variables'}->{$key};
+}
+
+sub write_with_header{
+	my ( $self, $outfile, $as_is ) = @_;
+	my @temp;
+	@temp = split( "/", $outfile );
+	pop(@temp);
+	mkdir( join( "/", @temp ) ) unless ( -d join( "/", @temp ) );
+	unless ( $as_is ){
+	if ( $outfile =~ m/txt$/ ) {
+		$outfile =~ s/txt$/bed/;
+	}
+	unless ( $outfile =~ m/bed$/ ) {
+		$outfile .= ".bed";
+	}
+	}
+	open( OUT, " >$outfile" )
+	  or Carp::confess(
+		ref($self)
+		  . "::print2file -> I can not create the outfile '$outfile'\n$!\n" );
+	print OUT $self->SUPER::AsString();
 	close(OUT);
 	print "all data written to '$outfile'\n";
 	return $outfile;
