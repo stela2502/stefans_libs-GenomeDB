@@ -121,7 +121,8 @@ sub get_cDNA_4_transcript {
 		return "";
 	}
 	## by definition this has to be on exactly one chromosome
-	my $chr = @{@{$self->{'data'}}[@$ids[0]]}[0];
+	my $chr = @{@{$self->{'exons'}->{'data'}}[@$ids[0]]}[0];
+	my $gname = @{@{$self->{'exons'}->{'data'}}[@$ids[0]]}[ $self->{'exons'}->Header_Position('gene_name')];
 	$self->{'fastafiles'} ||= {};
 	unless ( defined  $self->{'fastafiles'}->{$chr} ){
 		print "read sequence from $chr\n";
@@ -148,7 +149,7 @@ sub get_cDNA_4_transcript {
 	if ( @{@{$self->{'data'}}[@$ids[0]]}[6] eq "-"){
 		$seq = $ff->revComplement( $seq );
 	}
-	$ff->Create( "$chr:$id cdna right strand", $seq);
+	$ff->Create( "$chr:$id $gname cdna right strand", $seq);
 	return $ff->AsFasta();
 	
 }

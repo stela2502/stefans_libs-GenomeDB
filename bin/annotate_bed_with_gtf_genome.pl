@@ -70,8 +70,16 @@ my $error = '';
 unless ( -f $infiles[0] ) {
 	$error .= "the cmd line switch -infile is undefined!\n";
 }
-unless ( defined $outfiles[0] ) {
-	$error .= "the cmd line switch -outfile is undefined!\n";
+unless ( defined $outfiles[0] ){
+	$error .= "the cmd line switch -outfile is undefined!\n\tI need a outpath or a list of outfiles!\n";
+}
+elsif ( -d $outfiles[0] ) {
+	my $outfile = root->filemap($outfiles[0]."/somefile.txt");
+	my $infile;
+	for ( my $i = 0; $i < @infiles; $i ++ ){
+		$infile = root->filemap($infiles[$i]);
+		$outfiles[$i] = $outfile->{'path'}."/".$infile->{'filename'}.".annotated.xls";
+	}		
 }
 unless ( defined $gtf ) {
 	$error .= "the cmd line switch -gtf is undefined!\n";
@@ -121,7 +129,13 @@ for ( my $i = 0 ; $i < @options ; $i += 2 ) {
 #$options->{'something'} ||= 'default value';
 $options->{'gtf_feature'} = 'gene' unless ( defined $options->{'gtf_feature'} );
 ##############################
-open( LOG, ">$outfiles[0].log" ) or die $!;
+
+if ( @outfiles > 1 ) {
+	my $fm = root->filemap($outfiles[0]);
+	open( LOG, ">$fm->{'path'}/".$$."_annotate_bed_with_gtf_genome.log" ) or die $!;
+}else {
+	open( LOG, ">$outfiles[0].log" ) or die $!;
+}
 print LOG $task_description . "\n";
 close(LOG);
 
@@ -143,10 +157,6 @@ map { $gtf_file_anno->Rename_Column( $_, 'gtf_' . $_ ) }
 for ( my $fi = 0 ; $fi < @infiles ; $fi++ ) {
 	my $infile  = $infiles[$fi];
 	my $outfile = $outfiles[$fi];
-	unless ( defined $outfile) {
-		$outfile = root->filemap($infile);
-		$outfile = $outfile->{'path'}."/".$outfile->{'filename_core'}.".annotated.xls";
-	}
 	my $bed_file = stefans_libs::file_readers::bed_file->new();
 	$bed_file->read_file($infile);
 

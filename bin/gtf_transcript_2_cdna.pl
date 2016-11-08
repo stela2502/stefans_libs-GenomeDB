@@ -136,7 +136,9 @@ my $seq;
 
 foreach my $id( @ids ) {
 	open ( OUT, ">$outpath/$id.fa" ) or die $!;
+	eval {
 	print OUT $gtf_file -> get_cDNA_4_transcript ( $id );
+	};
 	close ( OUT );
 	print "Created file $outpath/$id.fa\n";
 }
