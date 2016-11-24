@@ -186,6 +186,7 @@ sub After_Data_read {
 
 sub get_chr_subID_4_start {
 	my ( $self, $start ) = @_;
+	$start ||=1;
 	return floor(($start / $self->{'slice_length'}));
 }
 
