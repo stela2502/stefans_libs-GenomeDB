@@ -151,6 +151,8 @@ $gtf_file =
 
 my $gtf_file_anno = $gtf_file->drop_column('attribute');
 
+die "\$exp = ".root->print_perl_var_def( {'header' => $gtf_file_anno->{'header'}, 'header_length' => scalar(@{$gtf_file_anno->{'header'}}), 'data_width' => scalar(@{@{$gtf_file_anno->{'data'}}[0]} ) } ). $gtf_file_anno->AsString().";\n";
+
 map { $gtf_file_anno->Rename_Column( $_, 'gtf_' . $_ ) }
 	  @{ $gtf_file_anno->{'header'} };
 	  
@@ -162,15 +164,39 @@ for ( my $fi = 0 ; $fi < @infiles ; $fi++ ) {
 
 	print "Starting to match the entries\n";
 
-	my $overlap = $bed_file->efficient_match( $gtf_file, 'genome_ids', 1 );
-
+	my $overlap = $bed_file->efficient_match( $gtf_file, 'genome_ids', 1 ); ## the match adds new columns in the gtf file!
 
 	my @colIDs = $overlap->Add_2_Header( $gtf_file_anno->{'header'} );
-
+	
+#	$exp = [ 'gtf_seqname', 'gtf_source', 'gtf_feature', 'gtf_start', 'gtf_end', 'gtf_score', 
+#	'gtf_strand', 'gtf_frame', 'gtf_attribute', 'gtf_gene_id', 'gtf_transcript_id', 'gtf_gene_type', 
+#	'gtf_gene_status', 'gtf_gene_name', 'gtf_transcript_type', 'gtf_transcript_status', 'gtf_transcript_name', 
+#	'gtf_exon_number', 'gtf_exon_id', 'gtf_level', 'gtf_tag', 'gtf_transcript_support_level', 'gtf_havana_gene', 
+#	'gtf_havana_transcript', 'gtf_protein_id', 'gtf_ccdsid' ];
+	
 ## so in the overlap column line_id now contains a list of matched genome rows
 	my ($line_id) = $overlap->Header_Position('genome_ids');
+	
+#	die "\$exp = ".root->print_perl_var_def( $overlap->{'header'} ).";\n";
+#	$exp = [ 'chromosome', 'start', 'end', 'name', 'orig.bed.file.col.4', 'orig.bed.file.col.5', 
+#	'orig.bed.file.col.6', 'orig.bed.file.col.7', 'genome_ids', 'gtf_seqname', 'gtf_source', 
+#	'gtf_feature', 'gtf_start', 'gtf_end', 'gtf_score', 'gtf_strand', 'gtf_frame', 'gtf_attribute', 
+#	'gtf_gene_id', 'gtf_transcript_id', 'gtf_gene_type', 'gtf_gene_status', 'gtf_gene_name', 
+#	'gtf_transcript_type', 'gtf_transcript_status', 'gtf_transcript_name', 'gtf_exon_number', 
+#	'gtf_exon_id', 'gtf_level', 'gtf_tag', 'gtf_transcript_support_level', 'gtf_havana_gene', 
+#	'gtf_havana_transcript', 'gtf_protein_id', 'gtf_ccdsid' ];
+	
+#	die "\$exp = ".root->print_perl_var_def( [@{$overlap->{'header'}}[@colIDs]] ).";\n";
+#	$exp = [ 'gtf_seqname', 'gtf_source', 'gtf_feature', 'gtf_start', 'gtf_end', 'gtf_score',
+#	 'gtf_strand', 'gtf_frame', 'gtf_attribute', 'gtf_gene_id', 'gtf_transcript_id', 'gtf_gene_type', 
+#	 'gtf_gene_status', 'gtf_gene_name', 'gtf_transcript_type', 'gtf_transcript_status', 'gtf_transcript_name', 
+#	 'gtf_exon_number', 'gtf_exon_id', 'gtf_level', 'gtf_tag', 'gtf_transcript_support_level', 
+#	 'gtf_havana_gene', 'gtf_havana_transcript', 'gtf_protein_id', 'gtf_ccdsid' ];
+	
 	for ( my $i = 0 ; $i < $overlap->Lines() ; $i++ ) {
+		
 		if ( ref( @{ @{ $overlap->{'data'} }[$i] }[$line_id] ) eq "ARRAY" ) {
+			print join("\t",@{$overlap->{'header'}}[@colIDs] );
 			@{ @{ $overlap->{'data'} }[$i] }[@colIDs] =
 			  &table_2_array( $gtf_file_anno,
 				@{ @{ $overlap->{'data'} }[$i] }[$line_id] );
@@ -198,7 +224,9 @@ sub table_2_array {
 	my ( $table, $rows ) = @_;
 	my @return;
 	foreach ( @{ $table->{'header'} } ) {
+		print "$_ -> ".join( " // ", @{ $table->GetAsArray($_) }[@$rows] ) ."\n";
 		push( @return, join( " // ", @{ $table->GetAsArray($_) }[@$rows] ) );
 	}
+	die "This was line 1\n";
 	return @return;
 }

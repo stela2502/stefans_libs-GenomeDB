@@ -65,22 +65,32 @@ $exp = {
   'end' => '41648811',
   'gtf_attribute' => 'ENSG00000223972.5',
   'gtf_end' => '41649811',
+  'gtf_exon_id' => undef,
+  'gtf_exon_number' => 'ENSE00002234944.1',
   'gtf_feature' => 'exon',
   'gtf_frame' => '.',
-  'gtf_gene_id' => 'ENST00000456328.2',
-  'gtf_gene_name' => 'DDX11L1',
-  'gtf_gene_status' => 'KNOWN',
-  'gtf_gene_type' => 'transcribed_unprocessed_pseudogene',
-  'gtf_havana_gene' => undef,
-  'gtf_level' => 'processed_transcript',
+  'gtf_gene_id' => 'transcribed_unprocessed_pseudogene',
+  'gtf_gene_name' => '2',
+  'gtf_gene_status' => 'DDX11L1',
+  'gtf_gene_type' => 'KNOWN',
+  'gtf_havana_gene' => 'ENST00000456328.2',
+  'gtf_havana_transcript' => '1',
+  'gtf_level' => 'OTTHUMG00000000961.2',
   'gtf_score' => '.',
   'gtf_seqname' => 'chr1',
   'gtf_source' => 'HAVANA',
   'gtf_start' => '41642425',
   'gtf_strand' => '+',
+  'gtf_tag' => '1',
+  'gtf_transcript_id' => 'processed_transcript',
+  'gtf_transcript_name' => 'basic',
+  'gtf_transcript_status' => 'DDX11L1-002',
+  'gtf_transcript_support_level' => 'OTTHUMT00000362751.1',
+  'gtf_transcript_type' => 'KNOWN',
   'name' => '',
   'start' => '41648425'
 };
+
 is_deeply( $t->get_line_asHash(0),
 	$exp, "outfile single feature match" );
 
@@ -91,6 +101,8 @@ $exp = {
   'end' => '43632992',
   'gtf_attribute' => undef,
   'gtf_end' => undef,
+  'gtf_exon_id' => undef,
+  'gtf_exon_number' => undef,
   'gtf_feature' => undef,
   'gtf_frame' => undef,
   'gtf_gene_id' => undef,
@@ -98,15 +110,23 @@ $exp = {
   'gtf_gene_status' => undef,
   'gtf_gene_type' => undef,
   'gtf_havana_gene' => undef,
+  'gtf_havana_transcript' => undef,
   'gtf_level' => undef,
   'gtf_score' => undef,
-  'gtf_seqname' => "No information about this area on chromosome 'chr1' in the other file",
+  'gtf_seqname' => 'No information about this area on chromosome \'chr1\' in the other file',
   'gtf_source' => undef,
   'gtf_start' => undef,
   'gtf_strand' => undef,
-  'name' => $value->{'name'},
+  'gtf_tag' => undef,
+  'gtf_transcript_id' => undef,
+  'gtf_transcript_name' => undef,
+  'gtf_transcript_status' => undef,
+  'gtf_transcript_support_level' => undef,
+  'gtf_transcript_type' => undef,
+  'name' => '',
   'start' => '43632534'
 };
+
 is_deeply( $t->get_line_asHash(1),
 	$exp, "outfile no match" );
 	
@@ -116,24 +136,36 @@ $exp = {
   'end' => '2607294',
   'gtf_attribute' => 'ENSG00000223972.5 // ENSG00000223972.52',
   'gtf_end' => '2609294 // 2609294',
+  'gtf_exon_id' => ' // ',
+  'gtf_exon_number' => 'ENSE00002234944.1 // ENSE00003582793.12',
   'gtf_feature' => 'exon // exon',
   'gtf_frame' => '. // .',
-  'gtf_gene_id' => 'ENST00000456328.2 // ENST00000456328.22',
-  'gtf_gene_name' => 'DDX11L1 // DDX11L12',
-  'gtf_gene_status' => 'KNOWN // KNOWN',
-  'gtf_gene_type' => 'transcribed_unprocessed_pseudogene // transcribed_unprocessed_pseudogene',
-  'gtf_havana_gene' => ' // ',
-  'gtf_level' => 'processed_transcript // processed_transcript',
+  'gtf_gene_id' => 'transcribed_unprocessed_pseudogene // transcribed_unprocessed_pseudogene',
+  'gtf_gene_name' => '2 // 2',
+  'gtf_gene_status' => 'DDX11L1 // DDX11L12',
+  'gtf_gene_type' => 'KNOWN // KNOWN',
+  'gtf_havana_gene' => 'ENST00000456328.2 // ENST00000456328.22',
+  'gtf_havana_transcript' => '1 // 2',
+  'gtf_level' => 'OTTHUMG00000000961.2 // OTTHUMG00000000961.22',
   'gtf_score' => '. // .',
   'gtf_seqname' => 'chr10 // chr10',
   'gtf_source' => 'HAVANA // HAVANA',
   'gtf_start' => '2602004 // 2602004',
   'gtf_strand' => '+ // +',
-  'name' => $value->{'name'},
+  'gtf_tag' => '1 // 1',
+  'gtf_transcript_id' => 'processed_transcript // processed_transcript',
+  'gtf_transcript_name' => 'basic // basic',
+  'gtf_transcript_status' => 'DDX11L1-002 // DDX11L1-0022',
+  'gtf_transcript_support_level' => 'OTTHUMT00000362751.1 // OTTHUMT00000362751.12',
+  'gtf_transcript_type' => 'KNOWN // KNOWN',
+  'name' => '',
   'start' => '2603004'
 };
 is_deeply( $t->get_line_asHash(2),
 	$exp, "outfile two features match" );
+
+
+
 
 #print $t ->AsString();
 
