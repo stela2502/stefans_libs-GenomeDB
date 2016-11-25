@@ -294,7 +294,7 @@ sub efficient_match {
 	$colname  ||= $other_bed_file->{'read_filename'};
 	my $pos = $self -> Add_2_Header( $colname );
 	my ($line, $rep_pdl, $t1, $t2,$t3, @intron_ids );
-	#local $SIG{__WARN__} = sub { };
+	local $SIG{__WARN__} = sub { };
 	for ( my $i = 0; $i < $self->Rows(); $i ++ ){
 		$line = $self->get_line_asHash ( $i );
 		$rep_pdl = $other_bed_file ->get_pdls_4_chr( $line->{'chromosome'}, $line->{'start'} );
@@ -339,7 +339,7 @@ sub efficient_match_chr_position {
 	my ( $self, $chr, $start, $end, $max_dist ) = @_;
 	$max_dist ||= 0;
 	$end ||= $start;
-	#local $SIG{__WARN__} = sub { };
+	local $SIG{__WARN__} = sub { };
 	my $rep_pdl = $self ->get_pdls_4_chr( $chr, $start );
 	if (  ref($rep_pdl) eq "PDL" ) {
 		my $t1 = $rep_pdl->slice(',1') <= $end + $max_dist;

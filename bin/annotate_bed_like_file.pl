@@ -216,7 +216,7 @@ sub get_from_genome {
 #chr1    17369   17436   MIR6859-1       "GeneID:102466751";"miRBase:MI0022705"
 #chr1    30366   30503   MIR1302-2       "GeneID:100302278";"HGNC:35294";"miRBase:MI0006363"
 
-print join("\t",@{$source_bed->{'header'}})."\n".$source_bed ->AsTestString();
+#print join("\t",@{$source_bed->{'header'}})."\n".$source_bed ->AsTestString();
 
 for ( my $i = 0; $i < $source_bed->Rows(); $i ++ ) {
 	next unless ( ref(@{@{$overlap->{'data'}}[$i]}[$genome_col]) eq "ARRAY" );

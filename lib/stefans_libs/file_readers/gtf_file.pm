@@ -216,7 +216,7 @@ sub get_pdls_4_chr {
 	my $chr_id = $self->get_chr_subID_4_start( $start );
 	#Carp::confess ( $self->AsString() );
 	unless ( defined @{$self->{'PDL'}->{$chr}}[$chr_id] ) {
-		#print "I create the PDL for chr $chr\n";
+		print "I create the PDL for chr $chr\n";
 		
 		my ($regions_start, $region_end );
 		$regions_start = $chr_id * $self->{'slice_length'} -10;
@@ -226,7 +226,7 @@ sub get_pdls_4_chr {
 			@{$self->{'data'}}[$self->{'subsetter'}->efficient_match_chr_position( $chr,$regions_start, $region_end )] 
 		];
 		
-		print "I create the PDL for chr $chr and id $chr_id and got ".@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Lines()." lines back\n";
+		#print "I create the PDL for chr $chr and id $chr_id and got ".@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Lines()." lines back\n";
 		if ( @{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Rows == 0 ){
 			@{$self->{'PDL'}->{$chr}}[$chr_id] = '';
 			return ();
