@@ -101,6 +101,8 @@ sub pre_process_array{
 	return 1;
 }
 
+
+
 sub get_cDNA_4_transcript {
 	my ( $self, $id, $seqpath ) = @_;
 	$self->{'chr_path'} ||= $seqpath;
@@ -171,10 +173,14 @@ sub After_Data_read {
 		for ( $a=0; $a < @$tmp; $a++ ){
 			@p = @{$helper->__split_line(@$tmp[$a])};
 			$values ->{$p[0]} = $p[1];
+			#print "$p[0] => $p[1]; ";
 			unless ( $added->{$p[0]} ){
 				( $added->{$p[0]} ) = $self->Add_2_Header ($p[0]);
 			}
 		}
+	#	warn "\$added = ".root->print_perl_var_def( $added).";\n";
+		
+		#die "\n";
 		foreach ( keys %$values ) {
 			@{@{$self->{'data'}}[$i]}[$added->{$_} ] = $values->{$_};
 		}
