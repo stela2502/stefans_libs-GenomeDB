@@ -37,8 +37,8 @@ $gtf_file =  $gtf_file->select_where( 'feature', sub { $_[0] eq $options[0]  } )
 
 my $cmd =
     "perl -I $plugin_path/../lib  $exec "
-  . " -outfile "
-  . $outfile. " ". $outfile.".2"
+  . " -outfile ". join( " ", $outfile, $outfile.".1", $outfile.".2")
+
   . " -infile "
   . $infile. " ". $infile. " ". $infile
   . " -options ''"
