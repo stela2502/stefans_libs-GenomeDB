@@ -25,12 +25,16 @@
        
        -priority    :each bed file entry can have multiple hits in the genome annotation.
                      The priority handles the order in which these will be choosen.
-                     You can choose between "<gtf_colname>;<value>" or smallest
+                     You can choose between "<gtf_colname>;<value>" or smallest or largest
                      
        -used_cols   :A list of columns that should be kept in the result table
        
        -options     :format: key_1 value_1 key_2 value_2 ... key_n value_n
-				unused
+       
+				largest "colA;colB;..." 
+				   :select the longest overlapping element additional to the -priority selected one
+				    and add the information in a new set of columns
+				    preceeded by "longest"
        
        -outfile     :the outfile (a tab separated table)
 
@@ -85,7 +89,7 @@ unless ( defined $infile ) {
 
 # names - no checks necessary
 unless ( defined $options[0] ) {
-	$error .= "the cmd line switch -options is undefined!\n";
+	$warn .= "the cmd line switch -options is undefined!\n";
 }
 unless ( defined $outfile ) {
 	$error .= "the cmd line switch -outfile is undefined!\n";
@@ -129,8 +133,14 @@ for ( my $i = 0 ; $i < @options ; $i += 2 ) {
 }
 ###### default options ########
 #$options->{'something'} ||= 'default value';
+
+if ( $options->{'largest'} ) {
+	my $tmp = [ split( ";", $options->{'largest'} )];
+	$options->{'largest'}  = { 'data' => $tmp, 'result' => [map{ "largest $_"} @$tmp], 'n' => scalar(@$tmp) };
+}
 ##############################
 
+	
 my $fm = root->filemap($outfile);
 unless ( -d $fm->{'path'} ) {
 	system("mkdir -p $fm->{'path'}");
@@ -141,7 +151,7 @@ close(LOG);
 
 ## Do whatever you want!
 
-my @prio_functs;
+my $prio_functs;
 
 my ( @line, $of_id, $avail_cols );
 open( IN, "<$infile" ) or die "could not open infile '$infile'\n$!\n";
@@ -171,12 +181,15 @@ while (<IN>) {
 		}
 		my $i = 0;
 		$avail_cols = { map { $_ => $i++ } @orig_cols_names };
-		unless (@used_cols) {
-			@used_cols = (@orig_cols_names[@gtf_ids], 'gtf_length');
+		unless (@used_cols > 0) {
+			@used_cols = ( @orig_cols_names[@gtf_ids], 'gtf_length' );
 			warn
 "command line option -used_cols undefined - I will report all columns!\n";
 		}
 		$data_table->Add_2_Header( \@used_cols );
+		if ( $options->{'largest'} ) {
+			$data_table->Add_2_Header( $options->{'largest'}->{'result'} );
+		}
 		&define_priority_functions();
 		next;
 	}
@@ -211,7 +224,7 @@ while (<IN>) {
 		{
 			'data_column'   => [ 'gtf_start', 'gtf_end' ],
 			'target_column' => 'gtf_length',
-			'function'      => sub            { return $_[1] - $_[0] }
+			'function'      => sub            {$_[0] ||= 0;$_[1] ||= 0; return $_[1] - $_[0] }
 		}
 	);
 
@@ -225,10 +238,20 @@ while (<IN>) {
 
 	$best_data = &get_priority($tmp_table);
 	map { $hash->{$_} = $best_data->{$_} } @used_cols;
+	if ( $options->{'largest'} ) {
+		my $r = &{$prio_functs->{'largest'}}($tmp_table);
+		#print "Did we get anything? \$exp = ".root->print_perl_var_def($r ).";\n";
+		if ( ref($r) eq "HASH"){
+			for ( my $i = 0; $i < $options->{'largest'}->{'n'}; $i++ ){
+				#print "@{$options->{'largest'}->{'result'}}[$i] => @{$options->{'largest'}->{'data'}}[$i] == $r->{@{$options->{'largest'}->{'data'}}[$i] }\n";
+				$hash->{@{$options->{'largest'}->{'result'}}[$i] } = $r->{@{$options->{'largest'}->{'data'}}[$i] }
+			}
+			
+		}
+	}
+  #	print "The final entry: \$exp = " . root->print_perl_var_def($hash) . ";\n";
+	$data_table->AddDataset($hash);
 
-#	print "The final entry: \$exp = " . root->print_perl_var_def($hash) . ";\n";
-	$data_table -> AddDataset( $hash );
-	
 #gtf_seqname	gtf_source	gtf_feature	gtf_start	gtf_end	gtf_score	gtf_strand	gtf_frame	gtf_attribute	gtf_gene_id	gtf_transcript_id	gtf_gene_type	gtf_gene_status	gtf_gene_name	gtf_transcript_type	gtf_transcript_status	gtf_transcript_name	gtf_exon_number	gtf_exon_id	gtf_level	gtf_protein_id	gtf_tag	gtf_transcript_support_level	gtf_ccdsid	gtf_havana_gene	gtf_havana_transcript	gtf_ont
 #chr1	HAVANA	exon	93847174	93848939	.	+	.	ENSG00000260464.1	ENST00000565336.1	lincRNA	KNOWN	RP4-561L24.3	lincRNA	KNOWN	RP4-561L24.3-001	1	ENSE00002588542.1	2	---	basic	NA	---	OTTHUMG00000175883.1	OTTHUMT00000431234.1	---	---
 #chr1	HAVANA	gene	93847174	93848939	.	+	.	ENSG00000260464.1		lincRNA	KNOWN	RP4-561L24.3						2					OTTHUMG00000175883.1
@@ -240,25 +263,40 @@ while (<IN>) {
 	#1	0	1	1
 	#like structure
 }
-$data_table->write_table( $outfile);
-
+$data_table->write_table($outfile);
 
 sub define_priority_functions {
-	unless (@priority) {
+	$prio_functs = { map { $_ => 1 } @priority };
+	unless ( $prio_functs->{'smallest'} ) {
 		@priority = ('smallest');
+		$prio_functs->{'smallest'} = 1;
 	}
-	foreach (@priority) {
+	unless ( $prio_functs->{'largest'} ) {
+		$prio_functs->{'largest'} = 1;
+	}
+	foreach ( keys %$prio_functs ) {
 		if ( $_ eq "smallest" ) {
-			push(
-				@prio_functs,
-				sub {
-					my $table = shift;
-					return undef if ( $table->Rows() == 0 );
-					$table = $table->Sort_by( [ [ 'gtf_length', 'numeric' ] ] );
-			#		print "\$exp = " . root->print_perl_var_def($table->get_line_asHash(0)) . ";\n";
-					return $table->get_line_asHash(0);
-				}
-			);
+			$prio_functs->{$_} = sub {
+				my $table = shift;
+				my $r;
+				return undef if ( $table->Rows() == 0 );
+				$r = $table->Sort_by( [ [ 'gtf_length', 'numeric' ] ] );
+
+#		print "\$exp = " . root->print_perl_var_def($r->get_line_asHash(0)) . ";\n";
+				return $r->get_line_asHash(0);
+			};
+
+		}
+		elsif ( $_ eq "largest" ) {
+			$prio_functs->{$_} = sub {
+				my $table = shift;
+				my $r;
+				return undef if ( $table->Rows() == 0 );
+				$r = $table->Sort_by( [ [ 'gtf_length', 'antiNumeric' ] ] );
+
+	#	print "largest: \$exp = " . root->print_perl_var_def($r->get_line_asHash(0)) . ";\n";
+				return $r->get_line_asHash(0);
+			};
 		}
 		else {
 			my ( $col, $val ) = split( ";", $_ );
@@ -267,19 +305,18 @@ sub define_priority_functions {
 			Carp::confess(
 				"the priority '$_' is not in the format 'column_name;value'\n")
 			  unless ( defined $val );
-			push(
-				@prio_functs,
-				sub {
-					my $table = shift;
-					my $t2 =
-					  $table->select_where( $col, sub { $_[0] eq $val } );
-					if ( $t2->Rows() == 0 ) {
-						warn "no entry in column $col with value $val\n".$table->AsString()."\n" if ( $debug );
-						return undef;
-					}
-					return $t2->get_line_asHash(0);
+			$prio_functs->{$_} = sub {
+				my $table = shift;
+				my $t2 =
+				  $table->select_where( $col, sub { $_[0] eq $val } );
+				if ( $t2->Rows() == 0 ) {
+		#			warn "no entry in column $col with value $val\n"
+		#			  . $table->AsString() . "\n"
+		#			  if ($debug);
+					return undef;
 				}
-			);
+				return $t2->get_line_asHash(0);
+			};
 		}
 	}
 
@@ -294,8 +331,8 @@ sub get_priority {
 		return $table->get_line_asHash(0);
 	}
 	my $r;
-	foreach (@prio_functs) {
-		$r = &$_($table);
+	foreach (@priority) {
+		$r = &{$prio_functs->{$_}}($table);
 		return $r if ( ref($r) eq "HASH" );
 	}
 	Carp::confess(

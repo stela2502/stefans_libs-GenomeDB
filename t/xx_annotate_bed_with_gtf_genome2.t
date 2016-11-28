@@ -57,7 +57,7 @@ my $t = data_table->new( { 'filename' => $outfile.".xls" } );
 
 
 $value = $t->get_line_asHash( 29 );
-#print "\$exp = ".root->print_perl_var_def( $value ).";\n";
+print "\$exp = ".root->print_perl_var_def( $value ).";\n";
 
 #the first entry:
 #chr2	HAVANA	gene	27042364	27070622	.	+	.	gene_id "ENSG00000084693.15"; gene_type "protein_coding"; gene_status "KNOWN"; gene_name "AGBL5"; level 1; havana_gene "OTTHUMG00000128406.7";
