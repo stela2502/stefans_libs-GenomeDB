@@ -175,7 +175,7 @@ the substring of the sequence or the whole sequence if start and end where not d
 sub Get_SubSeq {
 	my ( $self, $start, $end ) = @_;
 	my ($seq);
-	warn "Get_SubSeq $start $end\n";
+	#warn "Get_SubSeq $start $end\n";
 	if ( defined $start ) {
 		if ( defined $end ) {
 			return substr( $self->Seq, $start-1, $end - $start +1);
