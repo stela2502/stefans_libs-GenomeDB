@@ -147,7 +147,7 @@ print LOG $task_description . "\n";
 close(LOG);
 
 ## Do whatever you want!
-my $gtf_file = stefans_libs::file_readers::gtf_file->new();
+my $gtf_file = stefans_libs::file_readers::gtf_file->new($debug);
 print "Starting to read the gtf file\n";
 $gtf_file->read_file($gtf);
 

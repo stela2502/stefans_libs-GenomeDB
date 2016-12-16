@@ -158,16 +158,17 @@ sub get_cDNA_4_transcript {
 
 sub After_Data_read {
 	my ($self) = @_;
+	print "gtf file has been read\n";
 	## process the atribute into a set of columns
 	#gene_id "ENSG00000223972.5"; gene_type "transcribed_unprocessed_pseudogene"; gene_status "KNOWN"; gene_name "DDX11L1"; level 2; havana_gene "OTTHUMG00000000961.2";
 	my ($values, $tmp, $helper, $a, @p);
 	$helper = data_table->new();
 	$helper -> {'string_separator'} = '"';
-	$helper -> {'line_separator'} = " ";
+	$helper -> {'line_separator'} = "[ =]";
 	my $added = {};
 	for ( my $i = 0; $i < $self->Lines(); $i ++){
 		@{@{$self->{'data'}}[$i]}[8] =~ s/;$//;
-		$tmp = [ split( /; /, @{@{$self->{'data'}}[$i]}[8])];
+		$tmp = [ split( /; ?/, @{@{$self->{'data'}}[$i]}[8])];
 		#print "And I got these values from the split_line call: ".join(", ",@$tmp)."\n";
 		$values= ();
 		for ( $a=0; $a < @$tmp; $a++ ){
@@ -175,14 +176,19 @@ sub After_Data_read {
 			$values ->{$p[0]} = $p[1];
 			#print "$p[0] => $p[1]; ";
 			unless ( $added->{$p[0]} ){
+				#print "I add the column $p[0]\n";
 				( $added->{$p[0]} ) = $self->Add_2_Header ($p[0]);
 			}
 		}
-	#	warn "\$added = ".root->print_perl_var_def( $added).";\n";
+		#warn "\$added = ".root->print_perl_var_def( $added).";\n" if ( $self->{debug});
 		
 		#die "\n";
 		foreach ( keys %$values ) {
 			@{@{$self->{'data'}}[$i]}[$added->{$_} ] = $values->{$_};
+		}
+		if ( $i % 10000 == 0) {
+			print "Processed line $i\n". root->print_perl_var_def( $self->{'header'}) 
+			 if ( $self->{'debug'} );
 		}
 	}
 	$self->{'__max_header__'} = scalar( @{$self->{'header'}});
@@ -238,6 +244,21 @@ sub get_pdls_4_chr {
 		@{$self->{'PDL'}->{$chr}}[$chr_id] = @{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> GetAsObject('PDL')->GetAsPDL();
 	}
 	return @{$self->{'PDL'}->{$chr}}[$chr_id] ;
+}
+
+sub read_file {
+	 my ( $self, $filename, $lines ) = @_;
+	 return undef unless ( -f $filename );
+	 if ( -f $filename.".xls" ) {
+	 	my $data_table = data_table->new();
+	 	$data_table -> read_file ( $filename.".xls" ,$lines);
+	 	$self->Add_2_Header(  $data_table->{'header'}  );
+	 	$self->{'data'} = $data_table->{'data'};
+	 }
+	 else {
+	 	$self->SUPER::read_file( $filename, $lines );
+	 }
+	 return $self;
 }
 
 sub print_as_table {

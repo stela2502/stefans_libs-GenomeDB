@@ -104,21 +104,12 @@ sub get_promoter_regions_4_genes {
 	);
 	## OK now I have all mRNA gbStrings, the gbFile_id and that should be enough to create a bed file!
 #	print "I got the data table:\n".$data_table->AsString(). " using the search '$self->{'complex_search'}'\n";
-<<<<<<< HEAD
 	my $bedfile = stefans_libs::file_readers::bed_file->new();
 	my $gbFeature = gbFeature->new('nix', '1..2' );
 	my ($startP, $endP, @return, $hash );
 	for (my $i = 0; $i < $data_table->Lines; $i ++ ) {
 		$gbFeature -> parseFromString ( @{@{$data_table->{'data'}}[$i]}[1] );
 		($startP, $endP) = $gbFeature -> getPromoterRegion( $start, $end );
-=======
-	my $bedfile = stefans_libs_file_readers_bed_file->new();
-	my $gbFeature = gbFeature->new( 'nix', '1..2' );
-	my ( $startP, $endP, @return, $hash );
-	for ( my $i = 0 ; $i < $data_table->Lines ; $i++ ) {
-		$gbFeature->parseFromString( @{ @{ $data_table->{'data'} }[$i] }[1] );
-		( $startP, $endP ) = $gbFeature->getPromoterRegion( $start, $end );
->>>>>>> fc83dc65db03e3ecb1e1e1e6a655834e2cbc798f
 		##Now I need to translate the gbFile_ID start end into a chromosomal position
 		@return = $self->get_chr_calculator->gbFile_2_chromosome(
 			@{ @{ $data_table->{'data'} }[$i] }[0],
@@ -408,15 +399,9 @@ sub get_genes_in_chromosomal_region_as_bedFile {
 	my ( $self, $chr, $start, $end ) = @_;
 
 	my ( $data, $data_table, $chr_chr );
-<<<<<<< HEAD
-	my $bed_file = stefans_libs::file_readers::bed_file->new();
-	$chr_chr = $chr; 
-	$chr_chr = "chr$chr" unless ( $chr =~ m/chr/);
-=======
 	my $bed_file = stefans_libs_file_readers_bed_file->new();
 	$chr_chr = $chr;
 	$chr_chr = "chr$chr" unless ( $chr =~ m/chr/ );
->>>>>>> fc83dc65db03e3ecb1e1e1e6a655834e2cbc798f
 	foreach (
 		$self->get_chr_calculator()->Chromosome_2_gbFile( $chr, $start, $end ) )
 	{
