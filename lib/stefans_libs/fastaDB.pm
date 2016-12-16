@@ -259,6 +259,16 @@ sub WriteAsFastaDB {
 	return 1;
 }
 
+sub WriteAsFastqFile {
+	my ( $self, $filename, $startSeq, $endSeq ) = @_;
+	my ( $seq, $data );
+	open( OUT, ">$filename" ) or die "Konnte File $filename nicht anlegen!\n";
+	print OUT $self->getAsFastqDB();
+	close OUT ;
+	print "DB written as $filename in FASTQ format\n" if ( $self->{debug} );
+	return 1;
+}
+
 sub getAsFastaDB{
 	my ( $self ) =@_;
 	my $str = '';
@@ -275,6 +285,24 @@ sub getAsFastaDB{
 		}
 	}
 	return $str;
+}
+
+sub getAsFastqDB{
+	my ( $self ) =@_;
+	my $str = '';
+	my $seq;
+	foreach my $tag ( @{ $self->{accs} } ) {
+		$seq = $self->{'data'}->{$tag};
+		if ( length($seq) == 0 ){
+			print "I have no seq for the acc $tag\n";
+			next;
+		}
+		$str .= "\@$tag\n";
+		my $q = join("", map{ 'I' } 1..length($seq) );
+		$str .= $seq."\n+\n$q\n";
+	}
+	return $str;
+	
 }
 
 sub get_oligoID{
