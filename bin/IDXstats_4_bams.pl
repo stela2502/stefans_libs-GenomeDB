@@ -21,7 +21,7 @@
 
     IDXstats_4_bams.pl
        -bams     :a list of sorted bam files
-       -outfile  :teh result outfile
+       -outfile  :the result outfile
        -n        :numer of processes to run
 
        -help           :print this help
@@ -169,7 +169,7 @@ sub read_idxfile{
 	
 	while ( <IN> ) {
 		chomp($_);
-		#print "$_\n";
+		print "$file: $_\n" if ( $debug );
 		push ( @{$data_table -> {'data'}} , [ split( "\t", $_ )] ) ;
 	}
 	close ( IN );
