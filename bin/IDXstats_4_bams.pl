@@ -123,7 +123,20 @@ foreach my $file ( @bams ) {
 	my $in;
 	unless ( -f "$file.idxstat"){
 		print "running samtools: 'samtools idxstats $file > $file.idxstat'\n";
-		system( "samtools idxstats $file > $file.idxstat" );
+		system( "samtools idxstats $file > $file.idxstat 2> $file.idxstat.err" );
+		unless (-f "$file.idxstat" ) {
+			open ( ERR, "<$file.idxstat.err") or die  "could not open the samtools error file '$file.idxstat.err'\n$!\n";
+			my $err = join("",<ERR> );
+			close ( ERR );
+			if ( $err =~ m/is in a format that cannot be usefully indexed/ ) {
+				## most liely an error in the upstream process - unlink the file!
+				map {unlink( $_ )} $file, "$file.idxstat", "$file.idxstat.err" ;
+				warn "upstream processing error: bam file $file could not be indexed - removed\n";
+			}
+			else {
+				warn "$err";
+			}
+		}
 	}
 	
 	$pm->finish; # Terminates the child process
@@ -173,6 +186,8 @@ sub read_idxfile{
 		push ( @{$data_table -> {'data'}} , [ split( "\t", $_ )] ) ;
 	}
 	close ( IN );
-	@{@{$data_table->{'data'}}[($data_table->Rows()-1)]}[0] = "unmapped";
+	if ( $data_table->Rows() > 0 ){
+		@{@{$data_table->{'data'}}[($data_table->Rows()-1)]}[0] = "unmapped";
+	}
 	return $data_table;
 }

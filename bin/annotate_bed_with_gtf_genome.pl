@@ -130,6 +130,7 @@ for ( my $i = 0 ; $i < @options ; $i += 2 ) {
 ###### default options ########
 #$options->{'something'} ||= 'default value';
 $options->{'gtf_feature'} = 'gene' unless ( defined $options->{'gtf_feature'} );
+$options->{'max_distance'} ||= 1;
 ##############################
 
 if ( @outfiles > 1 ) {
@@ -169,7 +170,7 @@ for ( my $fi = 0 ; $fi < @infiles ; $fi++ ) {
 
 	print "Starting to match the entries\n";
 
-	my $overlap = $bed_file->efficient_match( $gtf_file, 'genome_ids', 1 )
+	my $overlap = $bed_file->efficient_match( $gtf_file, 'genome_ids', $options->{'max_distance'} )
 	  ;    ## the match adds new columns in the gtf file!
 
 	my @colIDs = $overlap->Add_2_Header( $gtf_file_anno->{'header'} );

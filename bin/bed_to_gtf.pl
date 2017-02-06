@@ -20,13 +20,14 @@
 =head1  SYNOPSIS
 
     bed_to_gtf.pl
-       -bed_file       :<please add some info!>
-       -outfile       :<please add some info!>
+       -bed_file    :the input bed file
+       -outfile     :the output gtf file
        -options     :format: key_1 value_1 key_2 value_2 ... key_n value_n
        
              db_type   :where do the gene information parts come from? (NCBI)
                         unset gene names (column 5 in the unconventional bed file) get 'unknown'
              peak_type :where do the genomic regions come from (default = 'transcription start')
+            chr2geneID :create the geneID from chr start stop as chr:start-stop 
              
 
 
@@ -98,7 +99,11 @@ sub helpString {
 ### initialize default options:
 
 #$options->{'n'} ||= 10;
-
+unless ( $options->{'chr2geneID'} ){
+	$options->{'chr2geneID'}=0;
+}else {
+	$options->{'chr2geneID'}=1;
+}
 ###
 
 
@@ -134,10 +139,10 @@ close ( LOG );
 open ( IN , "<$bed_file") or die "I could not open the bed file $bed_file\n$!\n";
 open ( OUT , ">$outfile") or die "I could not create the outfile $outfile\n$!\n";
 my ( @line, @tmp, $tmp );
+
 while ( <IN> ) {
 	chomp($_);
-	@line = split("\t", $_);
-	if ( $line[4] =~ m/\-\-\-/ ) {
+	@line = split("\t", $_);	if ( $options->{'chr2geneID'} or $line[4] =~ m/\-\-\-/) {
 		## no asosicated gene!
 		print OUT join("\t",$line[0], 'unknown', $options->{'peak_type'}, @line[1,2], '.','.','.', "gene_id \"$line[0]:$line[1]-$line[2]\"; gene_name=\"none\""  )."\n";
 	}else {
