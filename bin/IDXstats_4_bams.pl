@@ -112,10 +112,14 @@ close ( LOG );
 
 my $pm = Parallel::ForkManager->new($n);
 
-
+my @IDXstat_input;
+foreach my $file ( @bams ) {
+	push ( @IDXstat_input, $file ) unless ( -f "$file.idxstat");
+}
+	
 
 FILES:
-foreach my $file ( @bams ) {
+foreach my $file ( @IDXstat_input ) {
 	my $pid = $pm->start and next FILES;
 	unless ( -f "$file.bai" ) {
 		system( "samtools index $file" );
