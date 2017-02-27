@@ -33,7 +33,7 @@ is_deeply( $value, 1, "we could add a sample dataset" );
 
 ok ( 0 == $test_object->get_chr_subID_4_start( 1 ),"chr slice id for start ==1 " );
 ok ( 0 == $test_object->get_chr_subID_4_start( 999999 ),"chr slice id for start ==999999 " );
-ok ( 1 == $test_object->get_chr_subID_4_start( 1000000 ),"chr slice id for start ==1000000 " );
+ok ( 1 == $test_object->get_chr_subID_4_start( $test_object->{'slice_length'} ),"chr slice id for start ==$test_object->{'slice_length'} " );
 
 
 #print "\$exp = ".root->print_perl_var_def( [ split(/[\t\n]/,$test_object->AsString() )] ).";\n";

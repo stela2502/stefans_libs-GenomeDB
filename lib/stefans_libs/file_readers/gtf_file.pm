@@ -51,7 +51,7 @@ sub new {
     my ($self);
     $self = {
         'debug'           => $debug,
-        'slice_length' => 1e+6,
+        'slice_length' => 5e+6,
         'chr_path' => '',
         'arraySorter'     => arraySorter->new(),
         'header_position' => { 
@@ -101,6 +101,58 @@ sub pre_process_array{
 	return 1;
 }
 
+
+=head2 efficient_match_chr_position ( $chr, $start, $end, $max_dist )
+
+match the chromosomal area to the own data and returns the own matching row numbers.
+
+=cut
+
+sub efficient_match_chr_position {
+	my ( $self, $chr, $start, $end, $max_dist ) = @_;
+	$max_dist ||= 0;
+	$end ||= $start;
+	local $SIG{__WARN__} = sub { };
+	my $rep_pdl = $self ->get_pdls_4_chr( $chr, $start );
+	if (  ref($rep_pdl) eq "PDL" ) {
+		my $t1 = $rep_pdl->slice(',1') <= $end + $max_dist;
+		my $t2 = $rep_pdl->slice(',2') >= $start - $max_dist;
+		my @intron_ids = list( transpose( which( $t1 + $t2 == 2 ) ) );	
+		return $self->get_subset_4_PDL_ids($chr, $start, \@intron_ids);
+		return @{$self->{'subset_4_PDL'}->{$chr}->GetAsArray('line_id')}[@intron_ids];
+	}
+	return ();
+}
+
+=head2 efficient_match_chr_position_plus_one ( $chr, $start, $end, $max_dist )
+
+match the chromosomal area to the own data and returns the own matching row numbers.
+
+=cut
+
+sub efficient_match_chr_position_plus_one {
+	my ( $self, $chr, $start, $end, $max_dist ) = @_;
+	my @return = $self->efficient_match_chr_position( $chr, $start, $end, $max_dist );
+	if ( @return ) {
+		if ( $self->Rows == $return[@return-1] +1 ){
+			push( @return , undef)
+		}else {
+			push( @return , $return[@return-1] +1)
+		}
+		return @return;
+	}else {
+		$end ||= $start;
+		$start = $end;
+		$end = $start + 4e+6;
+		warn "I have no matches in the asked for region, therefore I try to find them here: $chr:$start-$end\n"if ( $self->{'debug'});
+		@return = $self->efficient_match_chr_position( $chr, $start, $end );
+		if ( @return == 0 ) {
+			@return = $self->efficient_match_chr_position( $chr, $start, @{@{$self->{'data'}}[$self->Rows()-1]}[$self->Header_Position('end')]);
+		}
+		return $return[0];
+	}
+	Carp::confess ( "must not reach this point\n");
+}
 
 
 sub get_cDNA_4_transcript {
@@ -161,28 +213,23 @@ sub After_Data_read {
 	print "gtf file has been read\n";
 	## process the atribute into a set of columns
 	#gene_id "ENSG00000223972.5"; gene_type "transcribed_unprocessed_pseudogene"; gene_status "KNOWN"; gene_name "DDX11L1"; level 2; havana_gene "OTTHUMG00000000961.2";
-	my ($values, $tmp, $helper, $a, @p);
+	my ($values, $tmp, $helper, $a,@tmp, @p);
 	$helper = data_table->new();
 	$helper -> {'string_separator'} = '"';
 	$helper -> {'line_separator'} = "[ =]";
 	my $added = {};
 	for ( my $i = 0; $i < $self->Lines(); $i ++){
 		@{@{$self->{'data'}}[$i]}[8] =~ s/;$//;
-		$tmp = [ split( /; ?/, @{@{$self->{'data'}}[$i]}[8])];
-		#print "And I got these values from the split_line call: ".join(", ",@$tmp)."\n";
+		@tmp = split( /; ?/, @{@{$self->{'data'}}[$i]}[8]);
 		$values= ();
-		for ( $a=0; $a < @$tmp; $a++ ){
-			@p = @{$helper->__split_line(@$tmp[$a])};
+		for ( $a=0; $a < @tmp; $a++ ){
+			$tmp[$a] =~ s/"$//;
+			@p = $tmp[$a] =~ m/([_\w]*)[ =]"?(.*)/g;
 			$values ->{$p[0]} = $p[1];
-			#print "$p[0] => $p[1]; ";
 			unless ( $added->{$p[0]} ){
-				#print "I add the column $p[0]\n";
 				( $added->{$p[0]} ) = $self->Add_2_Header ($p[0]);
 			}
 		}
-		#warn "\$added = ".root->print_perl_var_def( $added).";\n" if ( $self->{debug});
-		
-		#die "\n";
 		foreach ( keys %$values ) {
 			@{@{$self->{'data'}}[$i]}[$added->{$_} ] = $values->{$_};
 		}
@@ -192,7 +239,8 @@ sub After_Data_read {
 		}
 	}
 	$self->{'__max_header__'} = scalar( @{$self->{'header'}});
-	$self = $self->drop_column ( 'attribute' );
+	$self->drop_column( 'attribute');
+	print "Finished loading th gtf file\n";
 	return $self;
 }
 
@@ -207,10 +255,18 @@ sub get_pdls_4_chr {
 	my ($data);
 	$self->{'PDL'} ||={};
 	$self->{'PDL'}->{$chr} ||= [];
+	foreach ( keys %{$self->{'PDL'}} ) {
+		delete($self->{'PDL'}->{$_}) unless ( $_ eq $chr );
+	}
 	$self->{'subset_4_PDL'} ||= {};
 	$self->{'subset_4_PDL'}->{$chr} ||= [];
-	unless ( $self->Header_Position('line_id') ){
+	foreach ( keys %{$self->{'subset_4_PDL'}} ) {
+		delete($self->{'subset_4_PDL'}->{$_}) unless ( $_ eq $chr );
+	}
+	unless ( defined $self->Header_Position('line_id') ){
+		#print "I define dmy own line_id:\n";
 		$self->add_column('line_id', [ 0..($self->Rows()-1)] );
+		#print "\$exp = ".root->print_perl_var_def($self->get_line_as_hash(2)).";\n";
 	}
 	unless ( defined $self->{'subsetter'} ) {
 		my @col_ids = $self -> define_subset( 'matcher', ['seqname', 'start', 'end']);
@@ -220,28 +276,35 @@ sub get_pdls_4_chr {
 		}
 	} 
 	my $chr_id = $self->get_chr_subID_4_start( $start );
+	#print "I got the chr_id $chr_id for the start $start\n";
 	#Carp::confess ( $self->AsString() );
 	unless ( defined @{$self->{'PDL'}->{$chr}}[$chr_id] ) {
-		print "I create the PDL for chr $chr\n";
-		
 		my ($regions_start, $region_end );
 		$regions_start = $chr_id * $self->{'slice_length'} -10;
 		$region_end = ($chr_id+1) * $self->{'slice_length'} +10;
+		
+		print "END\nnew mapper/$chr_id for chr $chr:$regions_start-$region_end ";
+		
 		@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] = $self->_copy_without_data();
+		#warn "I subset to $chr,$regions_start, $region_end \n";
 		@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->{'data'} = [ 
 			@{$self->{'data'}}[$self->{'subsetter'}->efficient_match_chr_position( $chr,$regions_start, $region_end )] 
 		];
 		
-		#print "I create the PDL for chr $chr and id $chr_id and got ".@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Lines()." lines back\n";
+		#print "I create the PDL/$chr_id for chr $chr and id $chr_id and got ".@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Lines()." lines back\n";
 		if ( @{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Rows == 0 ){
 			@{$self->{'PDL'}->{$chr}}[$chr_id] = '';
 			return ();
 		}
-		#print "I got ". $self->{'PDL'}->{$chr}->Rows. " entries for chr $chr\n".join("\t", @{@{$self->{'PDL'}->{$chr}->{'data'}}[0]})."\n";
-	
+
 		@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> add_column ( 'INDEX', [0..(@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Rows()-1)]);
 		@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> define_subset ( 'PDL', [ 'INDEX','start','end', 'line_id']);
-		@{$self->{'PDL'}->{$chr}}[$chr_id] = @{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> GetAsObject('PDL')->GetAsPDL();
+		#print "The 'PDL' subset contains these columns:",join(", ",@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Header_Position('PDL') )."\n";
+		#print "This is what should built up the pdl for chr $chr:\n". @{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> GetAsObject('PDL')->AsString();
+		@{$self->{'PDL'}->{$chr}}[$chr_id] = @{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> GetAsObject('PDL')->GetAsPDL();		
+		
+		#print "I got a object of class". ref(@{$self->{'PDL'}->{$chr}}[$chr_id]). " that can be used to locate genomic areas on $chr\n";
+	
 	}
 	return @{$self->{'PDL'}->{$chr}}[$chr_id] ;
 }
