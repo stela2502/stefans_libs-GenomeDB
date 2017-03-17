@@ -1,0 +1,7 @@
+How to liftover a hg19 gtf file to hg38?
+
+First you need to use the UCSC liftover function (simple), but that is unfortunately not able to run on gtf or at least not on big gtf files.
+Hence you need to convert your gtf file into a bed file meaning you loose most of the information.
+A kind of good idea is to keep the gtf ids in the bed file.
+
+The GTF_2_Bed.pl script does exactly that.
