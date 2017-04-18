@@ -50,7 +50,7 @@ my $plugin_path = "$FindBin::Bin";
 my $VERSION = 'v1.0';
 
 
-my ( $help, $debug, $database, @bams, $outfile, $n);
+my ( $help, $debug, $database, @bams, $outfile, $n, $ls_input);
 
 Getopt::Long::GetOptions(
        "-bams=s{,}"    => \@bams,
@@ -64,7 +64,10 @@ Getopt::Long::GetOptions(
 my $warn = '';
 my $error = '';
 
-unless ( defined $bams[0]) {
+unless ( -f $bams[0] ) {
+	eval { open ( IN, "ls $bams[0] |"); $ls_input = $bams[0]; @bams = map{chomp;$_} <IN>; close ( IN ); };
+}
+unless ( -f $bams[0] ) {
 	$error .= "the cmd line switch -bams is undefined!\n";
 }
 unless ( defined $outfile) {
