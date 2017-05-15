@@ -370,7 +370,7 @@ sub get_pdls_4_chr {
 		push (@{$self->{'subset_4_PDL'}->{$chr}->{'data'}}, @{$self->{'data'}}[@$ids] );
 		
 		return () if ( $self->{'subset_4_PDL'}->{$chr}->Rows == 0 );
-		#print "I got ". $self->{'PDL'}->{$chr}->Rows. " entries for chr $chr\n".join("\t", @{@{$self->{'PDL'}->{$chr}->{'data'}}[0]})."\n";
+		#print "I got ". $self->{'subset_4_PDL'}->{$chr}->Rows. " entries for chr $chr\n";
 		$self->{'subset_4_PDL'}->{$chr} -> add_column ( 'INDEX', [0..($self->{'subset_4_PDL'}->{$chr}->Rows()-1)]);
 		$self->{'subset_4_PDL'}->{$chr} -> define_subset ( 'PDL', [ 'INDEX','start','end', 'line_id']);
 		$self->{'PDL'}->{$chr} = $self->{'subset_4_PDL'}->{$chr} -> GetAsObject('PDL')->GetAsPDL();
