@@ -58,7 +58,7 @@ sub new {
 		'source'     => {},
 		'background' => {},
 		'max_bad'    => 0,
-		'filemap' => {},
+		'filemap'    => {},
 	};
 
 	bless $self, $class
@@ -76,18 +76,23 @@ sub read_file {
 	while (<IN>) {
 		chomp($_);
 		@temp = split( "\t", $_ );
-		next if ($_=~m/^$/);
+		next if ( $_ =~ m/^$/ );
+
 		#print $_."\n";
-		$self->{'pathways'}->{ $temp[0] } = [sort keys %{$self->__genes_2_hash([@temp[ 2 .. ( @temp - 1 ) ]])} ];
-		#print "I got the Pathway $temp[0] with these genes: ".join(" ",@{$self->{'pathways'}->{ $temp[0] }})."\n";
-		$self->{'source'}->{$temp[0]} = $temp[1];
+		$self->{'pathways'}->{ $temp[0] } = [
+			sort
+			  keys %{ $self->__genes_2_hash( [ @temp[ 2 .. ( @temp - 1 ) ] ] ) }
+		];
+
+#print "I got the Pathway $temp[0] with these genes: ".join(" ",@{$self->{'pathways'}->{ $temp[0] }})."\n";
+		$self->{'source'}->{ $temp[0] } = $temp[1];
 	}
-	close ( IN );
+	close(IN);
 	$self->{'filemap'} = root->filemap($file);
 	return $self;
 }
 
-sub pathway_name{
+sub pathway_name {
 	my $self = shift;
 	return $self->{'filemap'}->{'filename'};
 }
@@ -97,18 +102,20 @@ sub write_file {
 	return $self unless ( -f $file );
 	open( OUT, ">$file" ) or Carp::confess($!);
 	my @temp;
-	foreach my $pathway ( keys %{$self->{'pathways'}} ) {
-		print OUT "$pathway\t$self->{'source'}->{$pathway}\t".join("\t",@{$self->{'pathways'}->{$pathway}} )."\n";
+	foreach my $pathway ( keys %{ $self->{'pathways'} } ) {
+		print OUT "$pathway\t$self->{'source'}->{$pathway}\t"
+		  . join( "\t", @{ $self->{'pathways'}->{$pathway} } ) . "\n";
 	}
-	close ( OUT);
+	close(OUT);
 	return $self;
 }
 
-sub AddPathway{
-	my ( $self, $pathway, $source, @genes ) =@_;
-	
-	Carp::confess ( "Sorry, the pathway $pathway is already defined!\n") if ( defined $self->{'pathways'}->{$pathway} );
-	if ( ref($genes[0]) eq "ARRAY" ){
+sub AddPathway {
+	my ( $self, $pathway, $source, @genes ) = @_;
+
+	Carp::confess("Sorry, the pathway $pathway is already defined!\n")
+	  if ( defined $self->{'pathways'}->{$pathway} );
+	if ( ref( $genes[0] ) eq "ARRAY" ) {
 		$self->{'pathways'}->{$pathway} = $genes[0];
 	}
 	else {
@@ -123,44 +130,46 @@ sub load_background {
 	## either a list of gene symbols or a list of pathways with numbers...
 	my ( @temp, $mode );
 	open( IN, "<$bgFile" ) or die $!;
-#	if ( $mode eq 'result' ) {
-#		while (<IN>) {
-#			chomp($_);
-#			@temp = split( /\s+/, $_ );
-#			if ( $temp[0] eq "max_bad" ) {
-#				$self->{'max_bad'} = $temp[1];
-#				next;
-#			}
-#			$self->{'background'}->{ $temp[0] } = $temp[1];
-#		}
-#	}
-#	else {
-		my ( @genes, $hash, $i );
-		while (<IN>) {
-			chomp($_);
-			@temp = split( /\s+/, $_ );
-			push( @genes, @temp );
-		}
-		if ( ref($homology_hash) eq "HASH"){
-			@temp = ();
-			foreach ( @genes ){
-				unless ( defined $homology_hash->{$_} ){
-					warn "Gene $_ not in homology hash!\n";
-					next;
-				}
-				push (@temp, $homology_hash->{$_} );
+
+	#	if ( $mode eq 'result' ) {
+	#		while (<IN>) {
+	#			chomp($_);
+	#			@temp = split( /\s+/, $_ );
+	#			if ( $temp[0] eq "max_bad" ) {
+	#				$self->{'max_bad'} = $temp[1];
+	#				next;
+	#			}
+	#			$self->{'background'}->{ $temp[0] } = $temp[1];
+	#		}
+	#	}
+	#	else {
+	my ( @genes, $hash, $i );
+	while (<IN>) {
+		chomp($_);
+		@temp = split( /\s+/, $_ );
+		push( @genes, @temp );
+	}
+	if ( ref($homology_hash) eq "HASH" ) {
+		@temp = ();
+		foreach (@genes) {
+			unless ( defined $homology_hash->{$_} ) {
+				warn "Gene $_ not in homology hash!\n";
+				next;
 			}
-			@genes = @temp;
+			push( @temp, $homology_hash->{$_} );
 		}
-		$hash = $self->__genes_2_hash( \@genes );
-		$self->{'max_bad'} = scalar( keys %$hash );
-		foreach my $pathway ( keys %{ $self->{'pathways'} } ) {
-			( $self->{'background'}->{$pathway}, $i ) =
-			  $self->__genes_in_list( $hash, $self->{'pathways'}->{$pathway} );
-		}
-#	}
-	close ( IN );
-	return  $self->{'background'}
+		@genes = @temp;
+	}
+	$hash = $self->__genes_2_hash( \@genes );
+	$self->{'max_bad'} = scalar( keys %$hash );
+	foreach my $pathway ( keys %{ $self->{'pathways'} } ) {
+		( $self->{'background'}->{$pathway}, $i ) =
+		  $self->__genes_in_list( $hash, $self->{'pathways'}->{$pathway} );
+	}
+
+	#	}
+	close(IN);
+	return $self->{'background'};
 }
 
 sub __genes_2_hash {
@@ -191,13 +200,12 @@ sub analyse_genes {
 	my ( $i, $data_table, $gene_count );
 	$gene_count = scalar( keys %$hash );
 	$data_table = data_table->new();
-	foreach (
-		'max_count',    'bad_entries', 'matched genes',
-		'pathway_name', 'gene list'
-	  )
-	{
-		$data_table->Add_2_Header($_);
-	}
+	$data_table->Add_2_Header(
+		[
+			'max_count', 'bad_entries', 'matched genes', 'pathway_name',
+			'gene list'
+		]
+	);
 	foreach my $pathway ( keys %{ $self->{'pathways'} } ) {
 		( $i, $genes ) =
 		  $self->__genes_in_list( $hash, $self->{'pathways'}->{$pathway} );
@@ -206,8 +214,10 @@ sub analyse_genes {
 				'max_count'   => scalar( @{ $self->{'pathways'}->{$pathway} } ),
 				'bad_entries' => $self->{'max_bad'} - $i,
 				'matched genes' => $i,
-				'pathway_name'  => "\\href{".$self->{'source'}->{$pathway}."}{".join(" ",split("_",$pathway))."}",
-				'gene list'     => $genes,
+				'pathway_name'  => "\\href{"
+				  . $self->{'source'}->{$pathway} . "}{"
+				  . join( " ", split( "_", $pathway ) ) . "}",
+				'gene list' => $genes,
 			}
 		);
 
@@ -218,9 +228,14 @@ sub analyse_genes {
 		{
 			'function' => sub {
 				if ( $_[2] > 0 ) {
-					return sprintf( '%.1E',
-					&more_hypergeom( $_[0], $_[1], $gene_count, $_[2], $_[3] )
-				);
+					return sprintf(
+						'%.1E',
+
+#          'max_count','bad_entries', 'number of genes in pathway, 'matched genes', 'pathway_name'
+						&more_hypergeom(
+							$_[0], $_[1], $gene_count, $_[2], $_[3]
+						)
+					);
 				}
 				return '1.2';
 			},
@@ -228,22 +243,26 @@ sub analyse_genes {
 			'target_column' => 'hypergeometric p value'
 		}
 	);
+
 	#die "I have created this table:\n".$data_table->AsString();
-	$self->{'description'} = "Pathways were analysed using a hypergeometric test implemented in perl.\n".
-	"A total of ".$self->Pathway_count(). " Pathways were analysed using a total of $gene_count enriched genes selected from $self->{'max_bad'} total genes.\n";
+	$self->{'description'} =
+"Pathways were analysed using a hypergeometric test implemented in perl.\n"
+	  . "A total of "
+	  . $self->Pathway_count()
+	  . " Pathways were analysed using a total of $gene_count enriched genes selected from $self->{'max_bad'} total genes.\n";
 	return $data_table;
 }
 
 sub Pathway_count {
-	my ( $self ) = @_;
-	return scalar( keys %{$self->{'pathways'}});
+	my ($self) = @_;
+	return scalar( keys %{ $self->{'pathways'} } );
 }
 
-	# There are m "bad" and n "good" balls in an urn.
-	# Pick N of them. The probability of i or more successful selection +s:
-	# (m!n!N!(m+n-N)!)/(i!(n-i)!(m+i-N)!(N-i)!(m+n)!)
-	#&more_hypergeom( <max good in pathway>, <number of total possible but not selected genes>,<number of draws performed>, <identified genes from this pathway>, <pathway name> )
-	
+# There are m "bad" and n "good" balls in an urn.
+# Pick N of them. The probability of i or more successful selection +s:
+# (m!n!N!(m+n-N)!)/(i!(n-i)!(m+i-N)!(N-i)!(m+n)!)
+#&more_hypergeom( <max good in pathway>, <number of total possible but not selected genes>,<number of draws performed>, <identified genes from this pathway>, <pathway name> )
+
 sub more_hypergeom {
 	my ( $n, $m, $N, $i, $pathway ) = @_;
 	return 1 unless ( defined $n );
@@ -256,8 +275,9 @@ sub more_hypergeom {
 "You claim to have gotten $i hits to a pathway having a max_hit_count of $n.\nI do not belive you and therefore set the result to 2\n";
 		return 2;
 	}
-	Carp::confess("You have an error in the script as $m + $n - $N is below 0! (you draw more balls than are in the urn!)\n")
-	  if ( $m + $n - $N < 0 );
+	Carp::confess(
+"You have an error in the script as $m + $n - $N is below 0! (you draw more balls than are in the urn!)\n"
+	) if ( $m + $n - $N < 0 );
 	my $p1 = &hypergeom( $n, $m, $N, $i );
 	unless ( $i + 2 > $N || $i + 2 > $n ) {
 		my $p2 = &hypergeom( $n, $m, $N, $i + 2 );
@@ -272,7 +292,6 @@ sub logfact {
 }
 
 sub hypergeom {
-
 
 	my ( $n, $m, $N, $i ) = @_;
 
