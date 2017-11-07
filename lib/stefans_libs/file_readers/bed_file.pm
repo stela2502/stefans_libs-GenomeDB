@@ -339,14 +339,16 @@ sub efficient_match_chr_position {
 	my ( $self, $chr, $start, $end, $max_dist ) = @_;
 	$max_dist ||= 0;
 	$end ||= $start;
-	local $SIG{__WARN__} = sub { };
-	my $rep_pdl = $self ->get_pdls_4_chr( $chr, $start );
+	#local $SIG{__WARN__} = sub { };
+	my $rep_pdl = $self ->get_pdls_4_chr( $chr );
+	
 	if (  ref($rep_pdl) eq "PDL" ) {
 		my $t1 = $rep_pdl->slice(',1') <= $end + $max_dist;
 		my $t2 = $rep_pdl->slice(',2') >= $start - $max_dist;
 		my @intron_ids = list( transpose( which( $t1 + $t2 == 2 ) ) );	
 		return @{$self->{'subset_4_PDL'}->{$chr}->GetAsArray('line_id')}[@intron_ids];
 	}
+	
 	return ();
 }
 
@@ -361,11 +363,13 @@ sub get_pdls_4_chr {
 		$self->add_column('line_id', [ 0..($self->Rows()-1)] );
 	}
 	my $ids;
-	unless ( defined $self->{'PDL'}->{$chr} ) {
+	unless ( defined $self->{'PDL'}->{$chr} ) {	
 		print "I create the PDL for chr $chr\n";
 		$ids = $self ->createIndex('chromosome')->{$chr};
-		return () unless ( $ids );
-		return () unless ( @$ids );
+		
+		return () unless ( defined $ids );
+		return () unless ( scalar(@$ids)  > 0 );
+		
 		$self->{'subset_4_PDL'}->{$chr} = $self->_copy_without_data();
 		push (@{$self->{'subset_4_PDL'}->{$chr}->{'data'}}, @{$self->{'data'}}[@$ids] );
 		

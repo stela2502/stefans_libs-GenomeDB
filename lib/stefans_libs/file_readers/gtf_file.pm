@@ -295,7 +295,7 @@ sub get_pdls_4_chr {
 	}
 	unless ( defined $self->Header_Position('line_id') ) {
 
-		#print "I define dmy own line_id:\n";
+		#print "I define my own line_id:\n";
 		$self->add_column( 'line_id', [ 0 .. ( $self->Rows() - 1 ) ] );
 
    #print "\$exp = ".root->print_perl_var_def($self->get_line_as_hash(2)).";\n";
@@ -335,7 +335,7 @@ sub get_pdls_4_chr {
 			]
 		];
 
-#print "I create the PDL/$chr_id for chr $chr and id $chr_id and got ".@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Lines()." lines back\n";
+#print $self->{'subsetter'}->AsString(), "\n$chr, $regions_start, $region_end";
 		if ( @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->Rows == 0 ) {
 			@{ $self->{'PDL'}->{$chr} }[$chr_id] = '';
 			return ();
