@@ -317,11 +317,8 @@ sub get_pdls_4_chr {
 	#Carp::confess ( $self->AsString() );
 	unless ( defined @{ $self->{'PDL'}->{$chr} }[$chr_id] ) {
 		my ( $regions_start, $region_end );
-		$regions_start = $chr_id * $self->{'slice_length'} - 10;
-		$region_end    = ( $chr_id + 1 ) * $self->{'slice_length'} + 10;
-
-		print
-		  "END\nnew mapper/$chr_id for chr $chr:$regions_start-$region_end ";
+		$regions_start = $chr_id * $self->{'slice_length'} - 1000;
+		$region_end    = ( $chr_id + 1 ) * $self->{'slice_length'} + 1000;
 
 		@{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id] =
 		  $self->_copy_without_data();
@@ -335,6 +332,9 @@ sub get_pdls_4_chr {
 			]
 		];
 
+
+		print
+		  "END\nnew mapper/$chr_id for chr $chr:$regions_start-$region_end (n=".@{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->Rows().") ";
 #print $self->{'subsetter'}->AsString(), "\n$chr, $regions_start, $region_end";
 		if ( @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->Rows == 0 ) {
 			@{ $self->{'PDL'}->{$chr} }[$chr_id] = '';
