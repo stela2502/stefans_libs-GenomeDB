@@ -118,8 +118,8 @@ sub AddFile {
 		}
 		else {
 			chomp($_);
-			if ($_ =~ m/^([AaGgTtCcNnXx]+)+$/ ){
-				$seq = "$seq$1";
+			if ($_ =~ m/^[AaGgTtCcNnXx]+$/ ){
+				$seq = "$seq$_";
 				#print "now we have the seq $seq\n";
 			}
 			else{

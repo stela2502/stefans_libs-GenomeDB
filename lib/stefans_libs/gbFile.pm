@@ -692,6 +692,19 @@ WriteAsFasta wirtes the internal sequence representation in fasta format.
 
 =cut
 
+
+sub AsFasta {
+	my ( $self, $accession, $startSeq, $endSeq ) = @_;
+	
+	$accession ||= $self->{name};
+	my $ret = ">$accession\n";
+	my $seq = $self->Get_SubSeq( $startSeq, $endSeq );
+	for ( my $start = -1 ; $start < length($seq) ; $start += 60 ) {
+		$ret .= substr( $seq, $start + 1, 60 ). "\n";
+	}
+	return $ret;
+}
+
 sub WriteAsFasta {
 	my ( $self, $file, $accession, $startSeq, $endSeq ) = @_;
 
@@ -703,15 +716,10 @@ sub WriteAsFasta {
 	root->CreatePath( $seqInfo->{path} );
 	open( OUT, ">$file" ) or die "Konnte Datei $file nicht anlegen!\n";
 
-	print OUT ">$accession\n" if ( defined $accession );
-	print OUT ">$self->{name}\n" unless ( defined $accession );
+	print OUT $self->AsFasta( $accession, $startSeq, $endSeq  );
 
-	my $seq = $self->Get_SubSeq( $startSeq, $endSeq );
-	for ( my $start = -1 ; $start < length($seq) ; $start += 60 ) {
-		print OUT substr( $seq, $start + 1, 60 ), "\n";
-	}
 	close OUT;
-	return 1;
+	return $self;
 }
 
 sub setLocus {

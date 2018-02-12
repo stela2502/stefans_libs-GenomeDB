@@ -126,8 +126,10 @@ match the chromosomal area to the own data and returns the own matching row numb
 
 sub efficient_match_chr_position_plus_one {
 	my ( $self, $chr, $start, $end, $max_dist ) = @_;
+	$max_dist ||= 1e+5;
 	my @return =
 	  $self->efficient_match_chr_position( $chr, $start, $end, $max_dist );
+	#warn "efficient_match_chr_position_plus_one got ". join(", ", @return)."\n";
 	if (@return) {
 		if ( $self->Rows == $return[ @return - 1 ] + 1 ) {
 			push( @return, undef );

@@ -17,8 +17,9 @@ package genbank_flatfile_db;
 
 use strict;
 use warnings;
-use PerlIO::gzip;
 use stefans_libs::gbFile;
+use stefans_libs::flexible_data_structures::data_table;
+
 
 =for comment
 
@@ -105,9 +106,9 @@ sub loadFlatFile {
 
 		if ( $flatfile =~ m/\.gz$/ ) {
 			## we have a gzipped file!
-			open( IN, "<:gzip", $flatfile )
+			open( IN, "gunzip $flatfile |" )
 			  or die
-			  "problem with the >PerlIO::gzip layer ('$flatfile')?\n$!\n";
+			  "problem with the gunzip layer ('$flatfile')?\n$!\n";
 		}
 		else {
 			open( IN, "<$flatfile" )
@@ -178,6 +179,17 @@ sub loadFlatFile {
 	}
 	return @order;
 }
+
+sub getInfo_as_data_table {
+	my ( $self ) = @_;
+	my $result = data_table->new();
+	$result -> Add_2_Header ( ['name','filename', 'size'] );
+	foreach my $version ( sort keys %{ $self->{files} } ) {
+		$result -> AddDataset( { 'name' => $version, 'filename' => $self->{files}->{$version}, 'size' => -S $self->{files}->{$version} });
+	}
+	return $result;
+}
+
 
 sub getAll_files_as_String {
 	my ($self) = @_;
