@@ -282,9 +282,28 @@ sub get_chr_subID_4_start {
 	return floor( ( $start / $self->{'slice_length'} ) );
 }
 
+sub _checkChr{
+	my ( $self, $chr ) = @_;
+	unless ( $chr =~ m/^chr/ ) {
+		return $chr;
+	}
+	## we use --add-chrname in the hisat2 call
+	## and the additional chr has to go
+	if ( $chr =~ m/^chr[\dXYxymM]*$/ ) {
+		## ok
+		return $chr;
+	}
+	if ( $chr =~ m/^chr(.*)/) {
+		return $1;
+	}
+	## OK none of the above things were true
+	return $chr;
+}
+
 sub get_pdls_4_chr {
 	my ( $self, $chr, $start ) = @_;
 	my ($data);
+	$chr = $self->_checkChr($chr);
 	$self->{'PDL'} ||= {};
 	$self->{'PDL'}->{$chr} ||= [];
 	foreach ( keys %{ $self->{'PDL'} } ) {
