@@ -26,5 +26,6 @@ $tmp = [ @$simple, map{ "chr$_" } @$complex];
 
 is_deeply( [ map {$test_object ->_checkChr($_) } @$tmp ], $exp, "problems are fixed");
 
+print scalar( @$complex );
 #print "\$exp = ".root->print_perl_var_def($value ).";\n";
 

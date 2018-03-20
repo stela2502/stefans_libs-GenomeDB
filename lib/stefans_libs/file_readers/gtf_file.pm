@@ -103,6 +103,7 @@ match the chromosomal area to the own data and returns the own matching row numb
 
 sub efficient_match_chr_position {
 	my ( $self, $chr, $start, $end, $max_dist ) = @_;
+	$chr = $self->_checkChr($chr);
 	$max_dist ||= 0;
 	$end ||= $start;
 	local $SIG{__WARN__} = sub { };
