@@ -127,17 +127,29 @@ match the chromosomal area to the own data and returns the own matching row numb
 
 sub efficient_match_chr_position_plus_one {
 	my ( $self, $chr, $start, $end, $max_dist ) = @_;
-	$max_dist ||= 1e+5;
+	$end ||= $start;
+	$end += 1e+5;
+	$max_dist = 0;
 	my @return =
 	  $self->efficient_match_chr_position( $chr, $start, $end, $max_dist );
-	#warn "efficient_match_chr_position_plus_one got ". join(", ", @return)."\n";
 	if (@return) {
-		if ( $self->Rows == $return[ @return - 1 ] + 1 ) {
+		if ( $self->Rows == $return[ $#return ] + 1 ) {
 			push( @return, undef );
 		}
 		else {
-			push( @return, $return[ @return - 1 ] + 1 );
+			push( @return, $return[ $#return ] + 1 );
 		}
+		$end -= 1e+5;
+		for ( my $i = 0; $i < @return; $i ++ ) {
+			shift ( @return ) if ( @{@{$self->{'data'}}[$return[$i]]}[4] < $start );
+		}
+		for ( my $i = $#return ; $i > 1; $i --) {
+			#warn "the second last entry is still before the thing. @{@{$self->{'data'}}[$return[$i-1]]}[4] > $end?\n";
+			pop( @return ) if (@{@{$self->{'data'}}[$return[$i-1]]}[4] > $end ); ## get rid of the last if the second last is still after the intended match.
+		}
+		
+		#warn "efficient_match_chr_position_plus_one($chr, $start, $end, $max_dist ) got '". join("', '", @return)."' (last is +1)\n";
+		#warn join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]}[1..6] ) } @return )."\n";
 		return @return;
 	}
 	else {
@@ -148,12 +160,16 @@ sub efficient_match_chr_position_plus_one {
 "I have no matches in the asked for region, therefore I try to find them here: $chr:$start-$end\n"
 		  if ( $self->{'debug'} );
 		@return = $self->efficient_match_chr_position( $chr, $start, $end );
-		if ( @return == 0 ) {
-			@return = $self->efficient_match_chr_position( $chr, $start,
-				@{ @{ $self->{'data'} }[ $self->Rows() - 1 ] }
-				  [ $self->Header_Position('end') ] );
+		for ( my $i = 1; $i < @return; $i ++ ){
+			if ( 
+				@{@{$self->{'data'}}[$return[$i]]}[2] > $end ## this start is after the search position end 
+				and @{@{$self->{'data'}}[$return[$i-1]]}[3] <$start ## last end is before the search position start
+				) {
+				## this is the +1
+				return $return[$i];
+			}
 		}
-		return $return[0];
+		return ();
 	}
 	Carp::confess("must not reach this point\n");
 }
