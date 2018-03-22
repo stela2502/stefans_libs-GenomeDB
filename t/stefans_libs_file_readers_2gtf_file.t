@@ -34,23 +34,40 @@ ok ( ! defined $test_object->Header_Position('attribute'), "attribute column is 
 @values =											  
   $test_object->efficient_match_chr_position( 'chr1', 4490931, 4491413 );
 
+#0: gene	4490931	4497354
+#1: transcript	4490931	4496413
+#8: exon	4490931	4492668
+#15: three_prime_UTR	4490931	4491715
+#16: transcript	4491250	4496757
+#19: exon	4491250	4492663
+#25: three_prime_UTR	4491250	4491715
+#27: transcript	4491390	4497354
+#34: exon	4491390	4492668
+#39: three_prime_UTR	4491390	4491715
+
 $exp = [ '0', '1', '8', '15', '16', '19', '25', '27', '34', '39' ];
+print "\n";
 is_deeply( \@values, $exp, "efficient_match_chr_position" );
 
-@values =
-  $test_object->efficient_match_chr_position_plus_one( 'chr1', 4490931, 4491413 );
-  
-push(@$exp, 40 );
+@values = sort { $a <=> $b } 
+  $test_object->efficient_match_chr_position_plus_one( 'chr1', 4491393 );
+ print "\n";
+
+push(@$exp, 40 ); ## just happens to be the right id ;-)
 is_deeply( \@values, $exp, "efficient_match_chr_position_plus_one" );
 
 
 @values =
   $test_object->efficient_match_chr_position( 'chr1', 4390931, 4391413 );
+print "\n";
+
 
 is_deeply( \@values, [], "efficient_match_chr_position 1 mb from the real data" );
 
 @values =
   $test_object->efficient_match_chr_position_plus_one( 'chr1', 4390931, 4391413);
+print "\n";
+print "\$exp = " . root->print_perl_var_def( \@values ) . ";\n";
 
 is_deeply( \@values, [0], "efficient_match_chr_position_plus_one 1 mb from the real data" );
 

@@ -51,7 +51,7 @@ sub new {
 	my ($self);
 	$self = {
 		'debug'           => $debug,
-		'slice_length'    => 5e+6,
+		'slice_length'    => 1e+6,
 		'chr_path'        => '',
 		'arraySorter'     => arraySorter->new(),
 		'header_position' => {
@@ -125,52 +125,36 @@ match the chromosomal area to the own data and returns the own matching row numb
 
 =cut
 
+
 sub efficient_match_chr_position_plus_one {
 	my ( $self, $chr, $start, $end, $max_dist ) = @_;
 	$end ||= $start;
-	$end += 1e+5;
+	my $add = 10e+7;
+	$end += $add;
 	$max_dist = 0;
-	my @return =
+	my @return = sort { @{@{$self->{'data'}}[$a]}[3] <=> @{@{$self->{'data'}}[$b]}[3] } ## order by start
 	  $self->efficient_match_chr_position( $chr, $start, $end, $max_dist );
-	if (@return) {
-		if ( $self->Rows == $return[ $#return ] + 1 ) {
-			push( @return, undef );
-		}
-		else {
-			push( @return, $return[ $#return ] + 1 );
-		}
-		$end -= 1e+5;
-		for ( my $i = 0; $i < @return; $i ++ ) {
-			shift ( @return ) if ( @{@{$self->{'data'}}[$return[$i]]}[4] < $start );
-		}
-		for ( my $i = $#return ; $i > 1; $i --) {
-			#warn "the second last entry is still before the thing. @{@{$self->{'data'}}[$return[$i-1]]}[4] > $end?\n";
-			pop( @return ) if (@{@{$self->{'data'}}[$return[$i-1]]}[4] > $end ); ## get rid of the last if the second last is still after the intended match.
-		}
+	$end -= $add;
+	my @not_match;
+	for (my $i = 0; $i < @return ;$i ++ ){
+		unless ( @{@{$self->{'data'}}[$return[$i]]}[4] > $start and @{@{$self->{'data'}}[$return[$i]]}[3] <  $end) {
+			## OK the first one is enough
+			#warn "I have a not matching entry as first entry (1)?? $i\n";
+			#warn "I return this:".join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]} ) }  @return[0..$i])."\n";
+			return @return[0..$i];
+		}#else {
+		#	warn "Matching $i $return[$i]:@{@{$self->{'data'}}[$return[$i]]}[4] > $start and @{@{$self->{'data'}}[$return[$i]]}[3] <  $end \n";
+		#}
+	}
+
+	#warn "ERROR!!!\n"."efficient_match_chr_position_plus_one: all of the ".scalar(@return)." entries did match?!\n";
+	## so now I have @return matching hits and shift(@not_match) the closes not matching one
+	return (@return);
 		
-		#warn "efficient_match_chr_position_plus_one($chr, $start, $end, $max_dist ) got '". join("', '", @return)."' (last is +1)\n";
-		#warn join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]}[1..6] ) } @return )."\n";
-		return @return;
-	}
-	else {
-		$end ||= $start;
-		$start = $end;
-		$end   = $start + 4e+6;
-		warn
-"I have no matches in the asked for region, therefore I try to find them here: $chr:$start-$end\n"
-		  if ( $self->{'debug'} );
-		@return = $self->efficient_match_chr_position( $chr, $start, $end );
-		for ( my $i = 1; $i < @return; $i ++ ){
-			if ( 
-				@{@{$self->{'data'}}[$return[$i]]}[2] > $end ## this start is after the search position end 
-				and @{@{$self->{'data'}}[$return[$i-1]]}[3] <$start ## last end is before the search position start
-				) {
-				## this is the +1
-				return $return[$i];
-			}
-		}
-		return ();
-	}
+	#warn "efficient_match_chr_position_plus_one($chr, $start, $end, $max_dist ) got '". join("', '", @return)."' (last is +1)\n";
+	#warn join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]}[1..6] ) } @return )."\n";
+	
+
 	Carp::confess("must not reach this point\n");
 }
 
