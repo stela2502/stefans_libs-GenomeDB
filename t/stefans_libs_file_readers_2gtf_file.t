@@ -17,7 +17,7 @@ is_deeply(
 	'simple test of function stefans_libs::file_readers::gtf_file -> new()'
 );
 
-my $infile = "$plugin_path/data/GOI.gtf3";
+my $infile = "$plugin_path/data/GOI.gtf3.gz";
 ok( -f $infile, "infile $infile" );
 
 my $begin = time();

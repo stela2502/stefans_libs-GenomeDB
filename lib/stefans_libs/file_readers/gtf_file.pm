@@ -125,35 +125,38 @@ match the chromosomal area to the own data and returns the own matching row numb
 
 =cut
 
-
 sub efficient_match_chr_position_plus_one {
 	my ( $self, $chr, $start, $end, $max_dist ) = @_;
 	$end ||= $start;
 	my $add = 10e+7;
 	$end += $add;
 	$max_dist = 0;
-	my @return = sort { @{@{$self->{'data'}}[$a]}[3] <=> @{@{$self->{'data'}}[$b]}[3] } ## order by start
+	my @return = sort {
+		@{ @{ $self->{'data'} }[$a] }[3] <=> @{ @{ $self->{'data'} }[$b] }[3]
+	  }    ## order by start
 	  $self->efficient_match_chr_position( $chr, $start, $end, $max_dist );
 	$end -= $add;
 	my @not_match;
-	for (my $i = 0; $i < @return ;$i ++ ){
-		unless ( @{@{$self->{'data'}}[$return[$i]]}[4] > $start and @{@{$self->{'data'}}[$return[$i]]}[3] <  $end) {
+
+	for ( my $i = 0 ; $i < @return ; $i++ ) {
+		unless (@{ @{ $self->{'data'} }[ $return[$i] ] }[4] > $start
+			and @{ @{ $self->{'data'} }[ $return[$i] ] }[3] < $end )
+		{
 			## OK the first one is enough
-			#warn "I have a not matching entry as first entry (1)?? $i\n";
-			#warn "I return this:".join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]} ) }  @return[0..$i])."\n";
-			return @return[0..$i];
-		}#else {
-		#	warn "Matching $i $return[$i]:@{@{$self->{'data'}}[$return[$i]]}[4] > $start and @{@{$self->{'data'}}[$return[$i]]}[3] <  $end \n";
-		#}
+#warn "I have a not matching entry as first entry (1)?? $i\n";
+#warn "I return this:".join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]} ) }  @return[0..$i])."\n";
+			return @return[ 0 .. $i ];
+		}    #else {
+		 #	warn "Matching $i $return[$i]:@{@{$self->{'data'}}[$return[$i]]}[4] > $start and @{@{$self->{'data'}}[$return[$i]]}[3] <  $end \n";
+		 #}
 	}
 
-	#warn "ERROR!!!\n"."efficient_match_chr_position_plus_one: all of the ".scalar(@return)." entries did match?!\n";
+#warn "ERROR!!!\n"."efficient_match_chr_position_plus_one: all of the ".scalar(@return)." entries did match?!\n";
 	## so now I have @return matching hits and shift(@not_match) the closes not matching one
 	return (@return);
-		
-	#warn "efficient_match_chr_position_plus_one($chr, $start, $end, $max_dist ) got '". join("', '", @return)."' (last is +1)\n";
-	#warn join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]}[1..6] ) } @return )."\n";
-	
+
+#warn "efficient_match_chr_position_plus_one($chr, $start, $end, $max_dist ) got '". join("', '", @return)."' (last is +1)\n";
+#warn join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]}[1..6] ) } @return )."\n";
 
 	Carp::confess("must not reach this point\n");
 }
@@ -237,7 +240,7 @@ sub After_Data_read {
 			  . @{ @{ $self->{'data'} }[$i] }[8]
 			  . "' could not be split by /; ?/ - please adjust the pattern match\n"
 		) unless (@tmp);
-		if ( @tmp == 1 ){
+		if ( @tmp == 1 ) {
 			warn "This is no gtf3 file\n";
 			last;
 		}
@@ -270,20 +273,15 @@ sub After_Data_read {
 		}
 	}
 	$self->{'__max_header__'} = scalar( @{ $self->{'header'} } );
-	$self->drop_column('attribute') if ( defined $self->Header_Position('attribute'));
+	$self->drop_column('attribute')
+	  if ( defined $self->Header_Position('attribute') );
 	$self->drop_all_indecies();
 	$self->{'subsets'} = {};
 	print "Finished loading the gtf file\n";
 	return $self;
 }
 
-sub get_chr_subID_4_start {
-	my ( $self, $start ) = @_;
-	$start ||= 1;
-	return floor( ( $start / $self->{'slice_length'} ) );
-}
-
-sub _checkChr{
+sub _checkChr {
 	my ( $self, $chr ) = @_;
 	unless ( $chr =~ m/^chr/ ) {
 		return $chr;
@@ -294,11 +292,128 @@ sub _checkChr{
 		## ok
 		return $chr;
 	}
-	if ( $chr =~ m/^chr(.*)/) {
+	if ( $chr =~ m/^chr(.*)/ ) {
 		return $1;
 	}
 	## OK none of the above things were true
 	return $chr;
+}
+
+sub get_chr_subID_4_start {
+	my ( $self, $chr, $start ) = @_;
+	$start ||= 1;
+	unless ( defined $self->{'__GeneFreeSplits__'} ) {
+		$self->{'__GeneFreeSplits__'} =
+		  stefans_libs::file_readers::bed_file->new();
+		my $chr_index = $self->createIndex('seqname');
+		my @ends      = @{ $self->GetAsArray('end') };
+		my ($max);
+		foreach my $chr (sort keys %$chr_index ) {
+			$max = $self->this_max( @ends[ @{ $chr_index->{$chr} } ] );
+			for ( my $i = 0 ; $i < $max + $self->{'slice_length'} ; $i += $self->{'slice_length'} ) {
+				push(
+					@{ $self->{'__GeneFreeSplits__'}->{'data'} },
+					[ $chr, $i, $i + $self->{'slice_length'} -1 ]
+				);
+			}
+		}
+	}
+	return $self->{'__GeneFreeSplits__'}
+	  ->efficient_match_chr_position( $chr, $start );
+}
+
+sub GeneFreeSplits {
+	my ( $self, $split_feature ) = @_;
+	$split_feature ||= 'gene';
+	if ( defined $self->{'__GeneFreeSplits__'} ) {
+		return $self->{'__GeneFreeSplits__'};
+	}
+	$self->{'__GeneFreeSplits__'} = stefans_libs::file_readers::bed_file->new();
+#$self->add_column( 'line_id', [ 0 .. ( $self->Rows() - 1 ) ] );
+	my $genes =
+	  $self->select_where( 'feature', sub { $_[0] eq $split_feature } );
+	$genes->{'slice_length'} = $self->{'slice_length'};
+	if ( $genes->Lines() == 0 ) {
+		Carp::confess(
+			    "the gtf file does not contain the feature '$split_feature'\n"
+			  . "I can not device a perfect split based on a none exisiting efature\n"
+		);
+	}
+	my $chr_index = $self->createIndex('seqname');
+	my @ends      = @{ $self->GetAsArray('end') };
+	my ( $max, $next_start, $last_start );
+	foreach my $chr (sort keys %$chr_index ) {
+		$max        = $self->this_max( @ends[ @{ $chr_index->{$chr} } ] );
+		$last_start = 0;
+	  POSITION:
+		for (
+			my $i = $self->{'slice_length'} ;
+			$i < $max + $self->{'slice_length'} ;
+			$i += $self->{'slice_length'}
+		  )
+		{
+			$next_start = $genes->goOn( $chr, $last_start, $i, $max, $self );
+			unless ( defined $next_start ) {
+$last_start = @{ @{ $self->{'__GeneFreeSplits__'}->{'data'} }
+				  [ $self->{'__GeneFreeSplits__'}->Lines() - 1 ] }[2] +1;
+				next POSITION;
+			}
+			while ( defined $next_start ) {
+				$next_start =
+				  $genes->goOn( $chr, $last_start, $next_start + 51, $max, $self );
+			}
+			$last_start = @{ @{ $self->{'__GeneFreeSplits__'} ->{'data'} }
+				  [ $self->{'__GeneFreeSplits__'}->Lines() - 1 ] }[2] +1;
+		}
+	}
+	## I need to drop the 'line_id' column in the $self->{'__GeneFreeSplits__'}
+	#$self->{'__GeneFreeSplits__'}->drop_column('line_id');
+	return $self->{'__GeneFreeSplits__'};
+}
+
+sub goOn {
+	my ( $self, $chr, $start, $pos, $max_pos, $add ) = @_;
+	$start ||= 0;
+	#print "We try to find the first matches: $chr, $start, $pos, $max_pos\n";
+	my @ids = $self->efficient_match_chr_position( $chr, $pos - 50, $pos + 50 );
+	#print "And we do pass the efficient match\n";
+	if ( scalar(@ids) == 0 ) {
+		## take that?
+		#print "And we can in fact use this!\n";
+		$pos = $max_pos if ( $pos > $max_pos );
+		push( @{ $add->{'__GeneFreeSplits__'}->{'data'} }, [ $chr, $start, $pos -1 ] );
+		return undef;
+	}
+	my $r = $self->this_max( $self->get_chr_end_4_ids( @ids ) )
+	  ;    ## the most likely next empty place.
+	if ( $r == 0 ) {
+		## what a crap"!
+		die "I have the ids "
+		  . join( ", ", @ids )
+		  . " translating to starts at "
+		  . join( ", ", $self->get_chr_end_4_ids( @ids ) )
+		  . " an I still get a max as $r??\n";
+	}
+	return $r;
+}
+
+sub get_chr_end_4_ids {
+	my ( $gtf, @lines ) = @_;
+	return 0 unless ( scalar(@lines) );
+	return map {
+		if ( defined $_ ) {
+			print "mapper line identified $_: "
+			  . join( ";", @{ @{ $gtf->{'data'} }[$_] } ) . "\n";
+			@{ @{ $gtf->{'data'} }[$_] }[4];
+		}
+	} @lines;
+}
+
+sub this_max {
+	my $self = shift;
+	my $max  = 0;
+	map { $max = $_ if ( $max < $_ ) } @_;
+	return $max;
 }
 
 sub get_pdls_4_chr {
@@ -333,14 +448,15 @@ sub get_pdls_4_chr {
 			);
 		}
 	}
-	my $chr_id = $self->get_chr_subID_4_start($start);
+	my ($chr_id) = $self->get_chr_subID_4_start($chr,$start);
 
 	#print "I got the chr_id $chr_id for the start $start\n";
 	#Carp::confess ( $self->AsString() );
 	unless ( defined @{ $self->{'PDL'}->{$chr} }[$chr_id] ) {
 		my ( $regions_start, $region_end );
-		$regions_start = $chr_id * $self->{'slice_length'} - 1000;
-		$region_end    = ( $chr_id + 1 ) * $self->{'slice_length'} + 1000;
+		## use the new __GeneFreeSplits__ object
+		( $regions_start, $region_end ) =
+		  @{ @{ $self->{'__GeneFreeSplits__'}->{'data'} }[$chr_id] }[ 1, 2 ];
 
 		@{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id] =
 		  $self->_copy_without_data();
@@ -348,16 +464,19 @@ sub get_pdls_4_chr {
 		#warn "I subset to $chr,$regions_start, $region_end \n";
 		@{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->{'data'} = [
 			@{ $self->{'data'} }[
-			  $self->{'subsetter'}
-			  ->efficient_match_chr_position( $chr, $regions_start,
-				  $region_end )
+			  $self->{'subsetter'}->efficient_match_chr_position(
+				  $chr,
+				  $regions_start - 1000,
+				  $region_end + 1000
+			  )
 			]
 		];
 
-
 		print
-		  "END\nnew mapper/$chr_id for chr $chr:$regions_start-$region_end (n=".@{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->Rows().") ";
-#print $self->{'subsetter'}->AsString(), "\n$chr, $regions_start, $region_end";
+		  "END\nnew mapper/$chr_id for chr $chr:$regions_start-$region_end (n="
+		  . @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->Rows() . ") ";
+
+ #print $self->{'subsetter'}->AsString(), "\n$chr, $regions_start, $region_end";
 		if ( @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->Rows == 0 ) {
 			@{ $self->{'PDL'}->{$chr} }[$chr_id] = '';
 			return ();
@@ -444,7 +563,7 @@ sub print_as_table {
 
 sub get_subset_4_PDL_ids {
 	my ( $self, $chr, $start, $ids ) = @_;
-	my $chr_id = $self->get_chr_subID_4_start($start);
+	my $chr_id = $self->get_chr_subID_4_start($chr,$start);
 	return
 	  @{ @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->GetAsArray('line_id') }
 	  [@$ids];
