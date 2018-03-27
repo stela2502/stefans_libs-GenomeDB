@@ -402,8 +402,8 @@ sub get_chr_end_4_ids {
 	return 0 unless ( scalar(@lines) );
 	return map {
 		if ( defined $_ ) {
-			print "mapper line identified $_: "
-			  . join( ";", @{ @{ $gtf->{'data'} }[$_] } ) . "\n";
+			#print "mapper line identified $_: "
+			#  . join( ";", @{ @{ $gtf->{'data'} }[$_] } ) . "\n";
 			@{ @{ $gtf->{'data'} }[$_] }[4];
 		}
 	} @lines;
