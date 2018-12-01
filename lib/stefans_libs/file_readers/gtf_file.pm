@@ -106,22 +106,29 @@ sub efficient_match_chr_position {
 	$chr = $self->_checkChr($chr);
 	$max_dist ||= 0;
 	$end ||= $start;
+	my (@rep_pdl, @intron_ids);
+	
 	local $SIG{__WARN__} = sub { };
-	my @rep_pdl = ($self->get_pdls_4_chr( $chr, $start )); ## I will only get one
+	@rep_pdl = ($self->get_pdls_4_chr( $chr, $start )); ## I will only get one
 	if ( my $last_id = $self->get_chr_subID_4_start( $chr, $end) > $self->{'last_chr_pdf_id'} ){
 		## shit I need to get more. Lets go with simply one more...
-		push( @rep_pdl,  $self->get_chr_pdl_4_id( $chr, $self->{'last_chr_pdf_id'} +1 ) );
+		my $opt = $self->get_chr_subID_4_start( $chr, $end );
+		for ( my $id = $self->{'last_chr_pdf_id'}+1; $id <= $opt; $id ++) {
+			push( @rep_pdl,  $self->get_chr_pdl_4_id( $chr, $id ) );
+		}
+		#warn "$opt id? I now have ". scalar(@rep_pdl). " pdl objects $self->{'last_chr_pdf_id'} and $self->{'last_chr_pdf_id'} +1 \n" if ( $self->{'debug'} );
 	}
-	my @intron_ids;
 	foreach my $rep_pdl ( @rep_pdl ){
 		if ( ref($rep_pdl) eq "PDL" ) {
 			my $t1         = $rep_pdl->slice(',1') <= $end + $max_dist;
 			my $t2         = $rep_pdl->slice(',2') >= $start - $max_dist;
 			push ( @intron_ids, list( transpose( which( $t1 + $t2 == 2 ) ) ) );
 		}
-		return $self->get_subset_4_PDL_ids( $chr, $start, \@intron_ids );
 	}
-	return ();
+	
+	#warn "\n\nI got the ids ". join(" ", @intron_ids ). " for the efficient match $chr, $start, $end, $max_dist in the pdl's ".join(" ", @rep_pdl)."\n\n\n";
+	return $self->get_subset_4_PDL_ids( $chr, $start, \@intron_ids );
+
 }
 
 =head2 efficient_match_chr_position_plus_one ( $chr, $start, $end, $max_dist )
@@ -153,6 +160,16 @@ sub efficient_match_chr_position_plus_one {
 		}   
 	}
 	
+	if ( scalar(@return) == 0) {
+		## this is a killer for my new GeneModelMatcher - I NEED to get the next one!
+		warn "Time intensive search!";
+		for ( my $i = 0; $i < @{$self->{'data'}}; $i ++ ) {
+			if ( @{ @{ $self->{'data'} }[ $i ] }[3] > $end ){
+				@return = ( $i );
+				last;
+			}
+		}
+	}
 	return (@return);
 
 	Carp::confess("must not reach this point\n");
@@ -475,9 +492,9 @@ sub get_chr_pdl_4_id {
 			]
 		];
 
-		print
-		  "END\nnew mapper/$chr_id for chr $chr:$regions_start-$region_end (n="
-		  . @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->Rows() . ") ";
+	#	print
+	#	  "END\nnew mapper/$chr_id for chr $chr:$regions_start-$region_end (n="
+	#	  . @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->Rows() . ") ";
 
  #print $self->{'subsetter'}->AsString(), "\n$chr, $regions_start, $region_end";
 		if ( @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->Rows == 0 ) {
