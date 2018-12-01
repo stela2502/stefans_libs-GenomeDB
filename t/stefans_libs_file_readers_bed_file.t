@@ -28,7 +28,7 @@ ok ( -f"$plugin_path/data/test_file.bed", 'infile 1' );
 
 #print "\$exp = ".root->print_perl_var_def($value ).";\n";
 $bed_file->read_file("$plugin_path/data/test_file.bed");
-is_deeply( $bed_file->Lines(), 199, "the right number of lines" );
+is_deeply( $bed_file->Lines(), 5, "the right number of lines" );
 
 $bed_file = stefans_libs::file_readers::bed_file->new();
 $bed_file->{'data'} = [

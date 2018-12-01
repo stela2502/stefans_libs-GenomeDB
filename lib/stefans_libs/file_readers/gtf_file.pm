@@ -107,14 +107,19 @@ sub efficient_match_chr_position {
 	$max_dist ||= 0;
 	$end ||= $start;
 	local $SIG{__WARN__} = sub { };
-	my $rep_pdl = $self->get_pdls_4_chr( $chr, $start );
-	if ( ref($rep_pdl) eq "PDL" ) {
-		my $t1         = $rep_pdl->slice(',1') <= $end + $max_dist;
-		my $t2         = $rep_pdl->slice(',2') >= $start - $max_dist;
-		my @intron_ids = list( transpose( which( $t1 + $t2 == 2 ) ) );
+	my @rep_pdl = ($self->get_pdls_4_chr( $chr, $start )); ## I will only get one
+	if ( my $last_id = $self->get_chr_subID_4_start( $chr, $end) > $self->{'last_chr_pdf_id'} ){
+		## shit I need to get more. Lets go with simply one more...
+		push( @rep_pdl,  $self->get_chr_pdl_4_id( $chr, $self->{'last_chr_pdf_id'} +1 ) );
+	}
+	my @intron_ids;
+	foreach my $rep_pdl ( @rep_pdl ){
+		if ( ref($rep_pdl) eq "PDL" ) {
+			my $t1         = $rep_pdl->slice(',1') <= $end + $max_dist;
+			my $t2         = $rep_pdl->slice(',2') >= $start - $max_dist;
+			push ( @intron_ids, list( transpose( which( $t1 + $t2 == 2 ) ) ) );
+		}
 		return $self->get_subset_4_PDL_ids( $chr, $start, \@intron_ids );
-		return @{ $self->{'subset_4_PDL'}->{$chr}->GetAsArray('line_id') }
-		  [@intron_ids];
 	}
 	return ();
 }
@@ -127,6 +132,7 @@ match the chromosomal area to the own data and returns the own matching row numb
 
 sub efficient_match_chr_position_plus_one {
 	my ( $self, $chr, $start, $end, $max_dist ) = @_;
+
 	$end ||= $start;
 	my $add = 10e+7;
 	$end += $add;
@@ -142,21 +148,12 @@ sub efficient_match_chr_position_plus_one {
 		unless (@{ @{ $self->{'data'} }[ $return[$i] ] }[4] > $start
 			and @{ @{ $self->{'data'} }[ $return[$i] ] }[3] < $end )
 		{
-			## OK the first one is enough
-#warn "I have a not matching entry as first entry (1)?? $i\n";
-#warn "I return this:".join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]} ) }  @return[0..$i])."\n";
-			return @return[ 0 .. $i ];
-		}    #else {
-		 #	warn "Matching $i $return[$i]:@{@{$self->{'data'}}[$return[$i]]}[4] > $start and @{@{$self->{'data'}}[$return[$i]]}[3] <  $end \n";
-		 #}
+			## one not in the matching area is enough
+			@return = @return[ 0 .. $i ];
+		}   
 	}
-
-#warn "ERROR!!!\n"."efficient_match_chr_position_plus_one: all of the ".scalar(@return)." entries did match?!\n";
-	## so now I have @return matching hits and shift(@not_match) the closes not matching one
+	
 	return (@return);
-
-#warn "efficient_match_chr_position_plus_one($chr, $start, $end, $max_dist ) got '". join("', '", @return)."' (last is +1)\n";
-#warn join( "\n",	map { join( "\t", @{@{ $self->{'data'} }[$_]}[1..6] ) } @return )."\n";
 
 	Carp::confess("must not reach this point\n");
 }
@@ -419,6 +416,18 @@ sub this_max {
 sub get_pdls_4_chr {
 	my ( $self, $chr, $start ) = @_;
 	my ($data);
+	
+	my ($chr_id) = $self->get_chr_subID_4_start($chr,$start);
+	
+	my $pdl = $self->get_chr_pdl_4_id( $chr, $chr_id );
+
+	$self->{'last_chr_pdf_id'} = $chr_id;
+	return $pdl;
+}
+
+sub get_chr_pdl_4_id {
+	my ( $self, $chr, $chr_id ) = @_;
+	
 	$chr = $self->_checkChr($chr);
 	$self->{'PDL'} ||= {};
 	$self->{'PDL'}->{$chr} ||= [];
@@ -431,11 +440,8 @@ sub get_pdls_4_chr {
 		delete( $self->{'subset_4_PDL'}->{$_} ) unless ( $_ eq $chr );
 	}
 	unless ( defined $self->Header_Position('line_id') ) {
-
 		#print "I define my own line_id:\n";
 		$self->add_column( 'line_id', [ 0 .. ( $self->Rows() - 1 ) ] );
-
-   #print "\$exp = ".root->print_perl_var_def($self->get_line_as_hash(2)).";\n";
 	}
 	unless ( defined $self->{'subsetter'} ) {
 		my @col_ids =
@@ -448,10 +454,7 @@ sub get_pdls_4_chr {
 			);
 		}
 	}
-	my ($chr_id) = $self->get_chr_subID_4_start($chr,$start);
-
-	#print "I got the chr_id $chr_id for the start $start\n";
-	#Carp::confess ( $self->AsString() );
+	
 	unless ( defined @{ $self->{'PDL'}->{$chr} }[$chr_id] ) {
 		my ( $regions_start, $region_end );
 		## use the new __GeneFreeSplits__ object
@@ -501,6 +504,7 @@ sub get_pdls_4_chr {
 #print "I got a object of class". ref(@{$self->{'PDL'}->{$chr}}[$chr_id]). " that can be used to locate genomic areas on $chr\n";
 
 	}
+	
 	return @{ $self->{'PDL'}->{$chr} }[$chr_id];
 }
 
