@@ -202,7 +202,8 @@ ok( $value->{'__max_header__'} == 23,
 	"internal Max_Header subset ($value->{'__max_header__'})" );
 
 #print "The pdl should just not throw any errors...\n";
-@values = $value->get_pdls_4_chr('chr1',1)->unpdl();
+
+@values = $value->get_pdls_4_chr('chr1',1)->{'__this_as_PDL__'}->unpdl();
 
 #print "\$exp = ".root->print_perl_var_def( \@values ).";\n";
 $exp = [ [ ['0'], ['13221'], ['14409'], ['3'] ] ];

@@ -51,7 +51,7 @@ sub new {
 	my ($self);
 	$self = {
 		'debug'           => $debug,
-		'slice_length'    => 1e+6,
+		'slice_length'    => 1e+7,
 		'chr_path'        => '',
 		'arraySorter'     => arraySorter->new(),
 		'header_position' => {
@@ -107,7 +107,8 @@ sub efficient_match_chr_position {
 	$max_dist ||= 0;
 	$end ||= $start;
 	my (@rep_pdl, @intron_ids);
-	
+	$self->__create_GeneFreeSplits ();
+	my $saveWarn = $SIG{__WARN__};
 	local $SIG{__WARN__} = sub { };
 	@rep_pdl = ($self->get_pdls_4_chr( $chr, $start )); ## I will only get one
 	if ( my $last_id = $self->get_chr_subID_4_start( $chr, $end) > $self->{'last_chr_pdf_id'} ){
@@ -118,16 +119,21 @@ sub efficient_match_chr_position {
 		}
 		#warn "$opt id? I now have ". scalar(@rep_pdl). " pdl objects $self->{'last_chr_pdf_id'} and $self->{'last_chr_pdf_id'} +1 \n" if ( $self->{'debug'} );
 	}
+	my @ret;
 	foreach my $rep_pdl ( @rep_pdl ){
-		if ( ref($rep_pdl) eq "PDL" ) {
-			my $t1         = $rep_pdl->slice(',1') <= $end + $max_dist;
-			my $t2         = $rep_pdl->slice(',2') >= $start - $max_dist;
-			push ( @intron_ids, list( transpose( which( $t1 + $t2 == 2 ) ) ) );
+		if ( ref($rep_pdl->{'__this_as_PDL__'}) eq "PDL" ) {
+			my $t1         = $rep_pdl->{'__this_as_PDL__'}->slice(',1') <= $end + $max_dist;
+			my $t2         = $rep_pdl->{'__this_as_PDL__'}->slice(',2') >= $start - $max_dist;
+			my @tmp = list( transpose( which( $t1 + $t2 == 2 ) ) );
+			if ( length(@tmp > 0)){
+				push( @ret, $rep_pdl->get_globalIDs_4_localPDL_ids( @tmp ) );
+			}
 		}
 	}
-	
-	#warn "\n\nI got the ids ". join(" ", @intron_ids ). " for the efficient match $chr, $start, $end, $max_dist in the pdl's ".join(" ", @rep_pdl)."\n\n\n";
-	return $self->get_subset_4_PDL_ids( $chr, $start, \@intron_ids );
+	local $SIG{__WARN__} = $saveWarn;
+	#warn "\n\nI got the ids ". join(" ", @intron_ids ). " for the efficient match $chr, $start, $end, $max_dist in the pdl's (not shown)\n\n\n";
+	#warn "\n\nI got the funal ids ". join(" ", 	@ret ). " for the efficient match $chr, $start, $end, $max_dist in the pdl's (not shown)\n\n\n";	
+	return @ret;
 
 }
 
@@ -145,6 +151,9 @@ sub efficient_match_chr_position_plus_one {
 	$end += $add;
 	$max_dist = 0;
 	my @return = sort {
+		Carp::confess( "some epic error here: Efficient match did return problematic entries: ($a, $b)" ) 
+			unless ( defined $self and defined $a and defined $b );
+			#unless ( defined @{ @{ $self->{'data'} }[$a] }[3] and defined @{ @{ $self->{'data'} }[$b] }[3] );
 		@{ @{ $self->{'data'} }[$a] }[3] <=> @{ @{ $self->{'data'} }[$b] }[3]
 	  }    ## order by start
 	  $self->efficient_match_chr_position( $chr, $start, $end, $max_dist );
@@ -313,9 +322,8 @@ sub _checkChr {
 	return $chr;
 }
 
-sub get_chr_subID_4_start {
-	my ( $self, $chr, $start ) = @_;
-	$start ||= 1;
+sub __create_GeneFreeSplits {
+	my $self = shift;
 	unless ( defined $self->{'__GeneFreeSplits__'} ) {
 		$self->{'__GeneFreeSplits__'} =
 		  stefans_libs::file_readers::bed_file->new();
@@ -332,8 +340,21 @@ sub get_chr_subID_4_start {
 			}
 		}
 	}
+	return $self;
+}
+sub get_chr_subID_4_start {
+	my ( $self, $chr, $start ) = @_;
+	$start ||= 1;
+	$self->__create_GeneFreeSplits();
 	return $self->{'__GeneFreeSplits__'}
 	  ->efficient_match_chr_position( $chr, $start );
+}
+
+sub get_chr_start_4_subID {
+	my ( $self, $id ) = @_;
+	$self->__create_GeneFreeSplits();
+	##Carp::confess("gtf_file::get_chr_start_4_subID - \n".  $self->{'__GeneFreeSplits__'}->AsString() );
+	return @{@{$self->{'__GeneFreeSplits__'}->{'data'}}[$id]}[0,1];
 }
 
 sub GeneFreeSplits {
@@ -472,7 +493,7 @@ sub get_chr_pdl_4_id {
 		}
 	}
 	
-	unless ( defined @{ $self->{'PDL'}->{$chr} }[$chr_id] ) {
+	unless ( defined @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id] ) {
 		my ( $regions_start, $region_end );
 		## use the new __GeneFreeSplits__ object
 		( $regions_start, $region_end ) =
@@ -512,17 +533,12 @@ sub get_chr_pdl_4_id {
 		@{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]
 		  ->define_subset( 'PDL', [ 'INDEX', 'start', 'end', 'line_id' ] );
 
-#print "The 'PDL' subset contains these columns:",join(", ",@{$self->{'subset_4_PDL'}->{$chr}}[$chr_id]->Header_Position('PDL') )."\n";
-#print "This is what should built up the pdl for chr $chr:\n". @{$self->{'subset_4_PDL'}->{$chr}}[$chr_id] -> GetAsObject('PDL')->AsString();
-		@{ $self->{'PDL'}->{$chr} }[$chr_id] =
-		  @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->GetAsObject('PDL')
+		@{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->{'__this_as_PDL__'} = @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->GetAsObject('PDL')
 		  ->GetAsPDL();
 
-#print "I got a object of class". ref(@{$self->{'PDL'}->{$chr}}[$chr_id]). " that can be used to locate genomic areas on $chr\n";
-
 	}
-	
-	return @{ $self->{'PDL'}->{$chr} }[$chr_id];
+	##@{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id] is a gtf_file (this object!)
+	return @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id];
 }
 
 sub read_file {
@@ -588,6 +604,13 @@ sub get_subset_4_PDL_ids {
 	return
 	  @{ @{ $self->{'subset_4_PDL'}->{$chr} }[$chr_id]->GetAsArray('line_id') }
 	  [@$ids];
+}
+
+sub get_globalIDs_4_localPDL_ids {
+	my ( $self, @ids ) = @_;
+	return
+	 @{ $self->GetAsArray('line_id') }
+	  [@ids];
 }
 
 1;
