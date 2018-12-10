@@ -131,7 +131,7 @@ sub efficient_match_chr_position {
 		}
 	}
 	local $SIG{__WARN__} = $saveWarn;
-	#warn "\n\nI got the ids ". join(" ", @intron_ids ). " for the efficient match $chr, $start, $end, $max_dist in the pdl's (not shown)\n\n\n";
+	#warn "\n\nI got the ids ". join(" ", @ret ). " for the efficient match $chr, $start, $end, $max_dist in the pdl's (not shown)\n\n\n";
 	#warn "\n\nI got the funal ids ". join(" ", 	@ret ). " for the efficient match $chr, $start, $end, $max_dist in the pdl's (not shown)\n\n\n";	
 	return @ret;
 
@@ -150,6 +150,7 @@ sub efficient_match_chr_position_plus_one {
 	my $add = 10e+7;
 	$end += $add;
 	$max_dist = 0;
+	
 	my @return = sort {
 		Carp::confess( "some epic error here: Efficient match did return problematic entries: ($a, $b)" ) 
 			unless ( defined $self and defined $a and defined $b );
