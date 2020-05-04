@@ -2,7 +2,7 @@
 
 =head1 LICENCE
 
-  Copyright (C) 2017-03-16 Stefan Lang
+  Copyright (C) 2020-04-30 Stefan Lang
 
   This program is free software; you can redistribute it 
   and/or modify it under the terms of the GNU General Public License 
@@ -17,11 +17,16 @@
   You should have received a copy of the GNU General Public License 
   along with this program; if not, see <http://www.gnu.org/licenses/>.
 
+=head1 CREATED BY
+   
+   binCreate.pl from git@github.com:stela2502/Stefans_Lib_Esentials.git commit c35cfea822cac3435c5821897ec3976372a89673
+   
+
 =head1  SYNOPSIS
 
-    GTF_2_Bed.pl
+    splt_fastaDB.pl
        -infile       :<please add some info!>
-       -outfile       :<please add some info!>
+       -outpath       :<please add some info!>
 
 
        -help           :print this help
@@ -29,9 +34,9 @@
    
 =head1 DESCRIPTION
 
-  sdvsv
+  Create a separate fasta file for every entry in the database
 
-  To get further help use 'GTF_2_Bed.pl -help' at the comman line.
+  To get further help use 'splt_fastaDB.pl -help' at the comman line.
 
 =cut
 
@@ -41,17 +46,20 @@ use Pod::Usage;
 use strict;
 use warnings;
 
+use stefans_libs::fastaDB;
+use stefans_libs::fastaFile;
+
 use FindBin;
 my $plugin_path = "$FindBin::Bin";
 
 my $VERSION = 'v1.0';
 
 
-my ( $help, $debug, $database, $infile, $outfile);
+my ( $help, $debug, $database, $infile, $outpath);
 
 Getopt::Long::GetOptions(
 	 "-infile=s"    => \$infile,
-	 "-outfile=s"    => \$outfile,
+	 "-outpath=s"    => \$outpath,
 
 	 "-help"             => \$help,
 	 "-debug"            => \$debug
@@ -60,11 +68,11 @@ Getopt::Long::GetOptions(
 my $warn = '';
 my $error = '';
 
-unless ( -f $infile) {
+unless ( defined $infile) {
 	$error .= "the cmd line switch -infile is undefined!\n";
 }
-unless ( defined $outfile) {
-	$error .= "the cmd line switch -outfile is undefined!\n";
+unless ( defined $outpath) {
+	$error .= "the cmd line switch -outpath is undefined!\n";
 }
 
 
@@ -89,27 +97,36 @@ sub helpString {
 
 my ( $task_description);
 
-$task_description .= 'perl '.$plugin_path .'/GTF_2_Bed.pl';
+$task_description .= 'perl '.$plugin_path .'/splt_fastaDB.pl';
 $task_description .= " -infile '$infile'" if (defined $infile);
-$task_description .= " -outfile '$outfile'" if (defined $outfile);
+$task_description .= " -outpath '$outpath'" if (defined $outpath);
 
 
 
-open ( LOG , ">$outfile.log") or die $!;
+mkdir( $outpath ) unless ( -d $outpath );
+open ( LOG , ">$outpath/".$$."_splt_fastaDB.pl.log") or die $!;
 print LOG $task_description."\n";
 close ( LOG );
 
 
 ## Do whatever you want!
 
-open (IN, "<$infile") or die "$!\n";
-open ( OUT, ">$outfile" ) or die "I could not create the outfile $outfile\n$!\n";
-my @line;
-my $i = 0;
-while ( <IN> ) {
-	print "process  line $i\n" if ( $i  % 1e+5 == 0 );
-	@line = split("\t",$_);
-	print OUT join("\t",$line[0], $line[3], $line[4], $i++  )."\n";
+my $OBJ = stefans_libs::fastaDB -> new();
+$OBJ->AddFile( $infile );
+my ($acc, $seq, $fastaF, @tmp, $fname, $i);
+$i = 0;
+while( ($acc, $seq) = $OBJ->get_next() ) {
+	$i ++;
+	if ( defined($acc) ) {
+		$fastaF = fastaFile->new();
+		$fastaF->Create( $acc, $seq);
+		@tmp = split(" ", $acc);
+		$fname = File::Spec->catfile( $outpath, $tmp[0].".fa" );
+		$fastaF->write_file( $fname );
+		print ( "Accession $i witten to $fname\n");
+	}else {
+		last;
+	}
 }
-close ( IN );
-close ( OUT );
+
+print "$i fasta files written to $outpath\n";

@@ -103,8 +103,9 @@ sub AddFile {
 	}else {
 		open( IN, "<$filename" ) or die "Konnte $filename nicht öffnen!\n";
 	}
-
+    $seq="";
 	while (<IN>) {
+		
 		next unless ( $_ =~ m/\w/);
 		if ( $_ =~ m/^>(.+)$/ ) {
 			if ( defined $tag ) {
@@ -144,7 +145,7 @@ sub Reset {
 }
 sub get_next {
 	my ($self) = @_;
-	return undef if ( $self->{actual_position} == scalar(@{ $self->{accs} } ) );
+	return undef, undef if ( $self->{actual_position} == scalar(@{ $self->{accs} } ) );
 	my $acc = @{ $self->{accs} }[ $self->{actual_position}++ ];
 	return $acc, $self->_seq($acc) if ( defined $acc );
 	return undef, undef;

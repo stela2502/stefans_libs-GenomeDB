@@ -8,23 +8,20 @@ use stefans_libs::flexible_data_structures::data_table;
 use FindBin;
 my $plugin_path = "$FindBin::Bin";
 
-my ( $value, @values, $exp, $ignored, @fastq, $cutoff );
+my ( $value, @values, $exp, $outpath, $infile, );
 
-my $exec = $plugin_path . "/../bin/fastq_drop_polyA.pl";
+my $exec = $plugin_path . "/../bin/splt_fastaDB.pl";
 ok( -f $exec, 'the script has been found' );
-my $outpath = "$plugin_path/data/output/fastq_drop_polyA";
+my $outpath = "$plugin_path/data/output/splt_fastaDB";
 if ( -d $outpath ) {
 	system("rm -Rf $outpath");
 }
-@fastq = ( $plugin_path."/data/test_polyA2.fastq.gz");
-$ignored = 20;
-$cutoff = 30;
+
 
 my $cmd =
     "perl -I $plugin_path/../lib  $exec "
-. " -ignored " . $ignored 
-. " -fastq " . join(' ', @fastq )
-. " -cutoff $cutoff"
+. " -outpath " . $outpath 
+. " -infile " . $infile 
 . " -debug";
 my $start = time;
 system( $cmd );
